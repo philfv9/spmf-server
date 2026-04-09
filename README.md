@@ -1,4 +1,3 @@
-```markdown
 # SPMF-Server & Python Client
 
 A **REST API server** that exposes the [SPMF](https://www.philippe-fournier-viger.com/spmf/)
@@ -519,4 +518,3 @@ SPMF is copyright © Philippe Fournier-Viger and is distributed under the
 
 SPMF-Server and spmf-client.py are released under the
 [MIT License](LICENSE).
-```
