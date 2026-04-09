@@ -23,11 +23,14 @@ and retrieve results without needing a local Java integration.
 ## Overview
 
 [SPMF](https://www.philippe-fournier-viger.com/spmf/) is one of the largest open-source
-data-mining libraries, providing over 230 algorithms for:
+data-mining libraries, specialized on pattern mining, providing over 230 algorithms for:
 
 - Frequent itemset mining (Apriori, FP-Growth, …)
 - Sequential pattern mining
-- Association rule mining
+- Association rule mining,
+- Sequential rule mining,
+- Episode rule mining,
+- Graph mining
 - Clustering, classification, and more
 
 **SPMF-Server** wraps the SPMF Java library in a lightweight HTTP server.
