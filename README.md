@@ -1,6 +1,6 @@
 # SPMF-Server
 
-A **REST API server** that exposes the [SPMF](https://www.philippe-fournier-viger.com/spmf/)
+A **REST API server** that exposes the [SPMF](http://philippe-fournier-viger.com/spmf/)
 data-mining library over HTTP, so that any language or tool can submit mining jobs
 and retrieve results without needing a local Java integration.
 
@@ -16,13 +16,13 @@ and retrieve results without needing a local Java integration.
 - [Job Lifecycle](#job-lifecycle)
 - [Clients](#clients)
 - [Troubleshooting](#troubleshooting)
-- [License](#license)
+- [Authors and License](#authors-and-license)
 
 ---
 
 ## Overview
 
-[SPMF](https://www.philippe-fournier-viger.com/spmf/) is one of the largest open-source
+[SPMF](http://philippe-fournier-viger.com/spmf/) is one of the largest open-source
 data-mining libraries, specialised in pattern mining, providing over 300 algorithms for:
 
 - Frequent itemset mining (Apriori, FP-Growth, …)
@@ -51,13 +51,23 @@ the result and console output when the job completes.
                                              +------------------+
 ```
 
+**Related projects:**
+
+| Project | Description |
+|---|---|
+| [SPMF Library](https://github.com/philfv9/spmf) | The core SPMF data-mining library (Java) |
+| [spmf-server-pythonclient](https://github.com/philfv9/spmf-server-pythonclient) | Ready-to-use Python CLI and GUI clients for SPMF-Server |
+| [SPMF Website](http://philippe-fournier-viger.com/spmf/) | Official documentation, algorithm list, and downloads |
+
 ---
 
 ## Requirements
 
 - **Java 11 or later**
 - **`spmf-server.jar`** — the SPMF-Server application jar
-- **`spmf.jar`** — the SPMF library jar
+- **`spmf.jar`** — the SPMF library jar (available from the
+  [SPMF GitHub repository](https://github.com/philfv9/spmf) or the
+  [SPMF website](http://philippe-fournier-viger.com/spmf/))
 
 > **Important:** `spmf-server.jar` and `spmf.jar` **must be placed in the same
 > folder**. The server passes the classpath to a child JVM process for each job,
@@ -157,7 +167,7 @@ java -Xmx512m -cp "spmf-server.jar:spmf.jar" ca.pfv.spmf.server.ServerMain --hea
 ### Option 3 — GUI mode (desktop environments only)
 
 Omit all arguments to launch the Swing graphical interface.
-This mode requires a display and is not suitable for servers.
+This mode requires a display and is not suitable for headless servers.
 
 **Windows:**
 ```bat
@@ -190,10 +200,10 @@ java -Xmx512m -cp "spmf-server.jar:spmf.jar" ca.pfv.spmf.server.ServerMain --hea
 
 ### Increasing the heap size
 
-Each algorithm job runs in its own child JVM (also with a 1 GB heap by
-default). The `-Xmx` flag on the main command controls the **server process**
-heap only. To increase the child JVM heap, set the environment variable
-`SPMF_CHILD_XMX` before starting the server:
+Each algorithm job runs in its own child JVM (with a 1 GB heap by default).
+The `-Xmx` flag on the main command controls the **server process** heap only.
+To increase the child JVM heap, set the environment variable `SPMF_CHILD_XMX`
+before starting the server:
 
 **Windows:**
 ```bat
@@ -481,19 +491,23 @@ Client                                  Server
 
 ## Clients
 
-A ready-to-use Python client package for SPMF-Server is available in a
-separate repository:
+A ready-to-use Python client package for SPMF-Server is available at:
 
-**[spmf-server-pythonclient](https://github.com/your-org/spmf-server-pythonclient)**
+**[https://github.com/philfv9/spmf-server-pythonclient](https://github.com/philfv9/spmf-server-pythonclient)**
 
-It includes:
+The package provides both a command-line client and a graphical desktop client,
+requiring no Java installation on the client machine — only Python 3.
 
 | File | Description |
 |---|---|
-| `spmf-client.py` | Full-featured command-line client for every API endpoint |
-| `spmf-gui.py` | Graphical desktop client built with Python + tkinter |
+| `spmf-client.py` | Full-featured command-line client covering every API endpoint |
+| `spmf-gui.py` | Graphical desktop client built with Python and tkinter |
 | `RUNCLIENT.BAT` | Windows batch script demonstrating all CLI commands |
 | `RUNCLIENTGUI.BAT` | Windows batch launcher for the GUI client |
+
+See the
+[spmf-server-pythonclient README](https://github.com/philfv9/spmf-server-pythonclient#readme)
+for installation instructions and usage examples.
 
 ---
 
@@ -516,8 +530,16 @@ It includes:
 
 ---
 
-## Authors and license
-The software is copyright by Philippe Fournier-Viger and contributors
+## Authors and License
 
-The software is distributed under the GNU GPLv3 License:
+**Author:** Philippe Fournier-Viger and contributors.
+
+**Related links:**
+
+- SPMF Library source code: [https://github.com/philfv9/spmf](https://github.com/philfv9/spmf)
+- Python client for SPMF-Server: [https://github.com/philfv9/spmf-server-pythonclient](https://github.com/philfv9/spmf-server-pythonclient)
+- Official SPMF website: [http://philippe-fournier-viger.com/spmf/](http://philippe-fournier-viger.com/spmf/)
+
+This software is distributed under the
 [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html).
+You are free to use, modify, and redistribute it under the terms of that licence.
