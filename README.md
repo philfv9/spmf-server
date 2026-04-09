@@ -356,13 +356,5 @@ It includes:
 
 ## License
 
-SPMF is copyright © Philippe Fournier-Viger and is distributed under the
+This software and SPMF are copyright © Philippe Fournier-Viger and contributors and is distributed under the
 [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html).
-
-SPMF-Server is released under the
-[MIT License](LICENSE).
-
-
-`spmf-client.py` and `spmf-gui.py` are released under the
-[MIT License](LICENSE).
-```
