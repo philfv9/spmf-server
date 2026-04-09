@@ -1,3 +1,7 @@
+[![License](https://img.shields.io/github/license/philfv9/spmf-server.svg)](https://github.com/philfv9/spmf-server/blob/main/LICENSE) 
+[![Release](https://img.shields.io/github/v/release/philfv9/spmf-server.svg)](https://github.com/philfv9/spmf-server/releases/latest) 
+[![Stars](https://img.shields.io/github/stars/philfv9/spmf-server.svg)](https://github.com/philfv9/spmf-server/stargazers)
+
 # SPMF-Server
 
 A **REST API server** that exposes the [SPMF](http://philippe-fournier-viger.com/spmf/)
