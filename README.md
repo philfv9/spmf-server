@@ -517,6 +517,8 @@ for installation instructions and usage examples.
 
 ## Troubleshooting
 
+Some common problems and solutions are as follows:
+
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | `Connection refused` on port 8585 | Server not started | Run the startup command from the [Running the Server](#running-the-server) section |
