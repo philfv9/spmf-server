@@ -1,5 +1,5 @@
 
-# SPMF-Server & Python Client
+# SPMF-Server & Python CLI and GUI Clients
 
 A **REST API server** that exposes the [SPMF](https://www.philippe-fournier-viger.com/spmf/)
 data-mining library over HTTP, plus a **command-line Python client** and a
