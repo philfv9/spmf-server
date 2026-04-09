@@ -534,12 +534,12 @@ for installation instructions and usage examples.
 
 **Author:** Philippe Fournier-Viger and contributors.
 
+This software is distributed under the
+[GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html).
+You are free to use, modify, and redistribute it under the terms of that licence.
+
 **Related links:**
 
 - SPMF Library source code: [https://github.com/philfv9/spmf](https://github.com/philfv9/spmf)
 - Python client for SPMF-Server: [https://github.com/philfv9/spmf-server-pythonclient](https://github.com/philfv9/spmf-server-pythonclient)
 - Official SPMF website: [http://philippe-fournier-viger.com/spmf/](http://philippe-fournier-viger.com/spmf/)
-
-This software is distributed under the
-[GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html).
-You are free to use, modify, and redistribute it under the terms of that licence.
