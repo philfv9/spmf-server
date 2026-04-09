@@ -1,0 +1,83 @@
+spmf-server/
+├── pom.xml
+├── spmf-server.properties
+└── src/main/java/ca/pfv/spmfserver/
+    ├── ServerMain.java
+    ├── ServerConfig.java
+    ├── http/
+    │   ├── HttpServerBootstrap.java
+    │   ├── BaseHandler.java
+    │   ├── AlgorithmHandler.java
+    │   ├── RunHandler.java
+    │   ├── JobHandler.java
+    │   └── HealthHandler.java
+    ├── job/
+    │   ├── Job.java
+    │   ├── JobStatus.java
+    │   ├── JobManager.java
+    │   └── JobCleaner.java
+    ├── spmf/
+    │   ├── SpmfCatalogue.java
+    │   ├── SpmfExecutor.java
+    │   └── ParameterValidator.java
+    ├── util/
+    │   ├── SimpleJson.java
+    │   ├── FileUtil.java
+    │   └── ApiKeyFilter.java
+    └── gui/
+        └── ServerGui.java
+        
+        
+        
+WINDOWS 
+@echo off
+set SPMF_CHILD_XMX=2g
+java -Xmx512m -cp "spmf-server.jar;spmf.jar" ^
+  ca.pfv.spmf.server.ServerMain --headless spmf-server.properties
+     
+LINUX:
+#!/bin/bash
+export SPMF_CHILD_XMX=2g
+java -Xmx512m -cp "spmf-server.jar:spmf.jar" \
+  ca.pfv.spmf.server.ServerMain --headless spmf-server.properties
+     
+     
+     
+MARKDOWN
+# SPMF-Server
+
+A lightweight HTTP REST server that wraps the SPMF data mining library,
+allowing any language to execute SPMF algorithms over HTTP.
+
+## Requirements
+
+- Java 11+
+- spmf.jar (place in `lib/` folder)
+- Maven 3.6+ (to build)
+
+## Build
+
+```bash
+mvn clean package
+
+
+============================= BUILD AND RUN ====================
+
+# 1. Place spmf.jar in lib/
+mkdir lib
+cp /path/to/spmf.jar lib/
+
+# 2. Build (produces target/spmf-server.jar — no deps bundled)
+mvn clean package
+
+# 3a. Run with GUI (default)
+java -cp "target/spmf-server.jar:lib/spmf.jar" ca.pfv.spmfserver.ServerMain
+
+# 3b. Run headless
+java -cp "target/spmf-server.jar:lib/spmf.jar" ca.pfv.spmfserver.ServerMain --headless
+
+# 3c. Run headless with explicit config
+java -cp "target/spmf-server.jar:lib/spmf.jar" ca.pfv.spmfserver.ServerMain --headless spmf-server.properties
+
+# Windows — replace : with ;
+java -cp "target/spmf-server.jar;lib/spmf.jar" ca.pfv.spmfserver.ServerMain
