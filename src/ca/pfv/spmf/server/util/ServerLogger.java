@@ -1,13 +1,8 @@
 package ca.pfv.spmf.server.util;
 
-import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.logging.*;
 /*
- *  Copyright (c) 2026 Philippe Fournier-Viger
- * 
+ * Copyright (c) 2026 Philippe Fournier-Viger
+ *
  * This file is part of the SPMF SERVER
  * (http://www.philippe-fournier-viger.com/spmf).
  *
@@ -18,31 +13,97 @@ import java.util.logging.*;
  *
  * SPMF is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with SPMF.  If not, see <http://www.gnu.org/licenses/>.
+ * along with SPMF. If not, see <http://www.gnu.org/licenses/>.
  */
+
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.FileHandler;
+import java.util.logging.Formatter;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+
 /**
- * Central logging configurator using java.util.logging (JUL) only.
+ * Central logging configurator for the SPMF-Server.
+ * <p>
+ * Uses the Java standard {@code java.util.logging} (JUL) framework exclusively
+ * — no external logging libraries are required.
+ * <p>
+ * <b>Typical usage:</b>
+ * <ol>
+ *   <li>Call {@link #configure(String, String)} <em>once</em> at application
+ *       startup (before any other component logs).</li>
+ *   <li>Obtain per-class loggers via {@link #get(Class)} in each class that
+ *       needs to log.</li>
+ * </ol>
  *
- * <p>Call {@link #configure(String, String)} once at startup.
- * All classes then obtain loggers via {@link #get(Class)}.
+ * <b>Features:</b>
+ * <ul>
+ *   <li>Single-line, human-readable log format with timestamp, level, and
+ *       short class name.</li>
+ *   <li>Simultaneous console and rotating file output.</li>
+ *   <li>File handler limited to 10 MB per file, with up to 5 rotating
+ *       generations, appending to any existing log on restart.</li>
+ * </ul>
+ *
+ * @author Philippe Fournier-Viger
  */
 public final class ServerLogger {
 
+    /**
+     * Root logger name for the entire SPMF-Server package hierarchy.
+     * All loggers obtained via {@link #get(Class)} are children of this
+     * logger and inherit its handlers and level.
+     */
     private static final String ROOT_LOGGER_NAME = "ca.pfv.spmfserver";
 
+    /** Maximum size (bytes) of a single log file before rotation (10 MB). */
+    private static final int LOG_FILE_MAX_BYTES = 10_000_000;
+
+    /** Number of rotating log file generations to keep. */
+    private static final int LOG_FILE_COUNT = 5;
+
+    /** Prevent instantiation — all methods are static. */
     private ServerLogger() {}
 
+    // ── Public API ─────────────────────────────────────────────────────────
+
     /**
-     * Configure JUL: set level, attach console handler, attach rolling file handler.
+     * Configure JUL for the SPMF-Server package.
+     * <p>
+     * This method:
+     * <ol>
+     *   <li>Removes all handlers from the root JUL logger to suppress
+     *       duplicate output.</li>
+     *   <li>Creates a package-level logger ({@value #ROOT_LOGGER_NAME}) with
+     *       the requested level.</li>
+     *   <li>Attaches a {@link ConsoleHandler} at the requested level.</li>
+     *   <li>Optionally attaches a rotating {@link FileHandler} if
+     *       {@code logFilePath} is non-empty; parent directories are created
+     *       automatically.</li>
+     * </ol>
+     * Calling this method more than once has no harmful effect, but the
+     * handlers will accumulate — it is intended to be called once at startup.
      *
-     * @param levelName  e.g. "INFO", "FINE", "WARNING"
-     * @param logFilePath path to log file; parent dirs are created automatically
+     * @param levelName   JUL level name (e.g. {@code "INFO"}, {@code "FINE"},
+     *                    {@code "WARNING"}); invalid names default to
+     *                    {@link Level#INFO}
+     * @param logFilePath file-system path for the log file; parent directories
+     *                    are created if absent; pass an empty string or
+     *                    {@code null} to disable file logging
      */
     public static void configure(String levelName, String logFilePath) {
+
+        // Resolve the requested level, defaulting to INFO on bad input
         Level level;
         try {
             level = Level.parse(levelName.toUpperCase());
@@ -50,75 +111,128 @@ public final class ServerLogger {
             level = Level.INFO;
         }
 
-        // Remove any handlers already attached to the root JUL logger
+        // Remove all handlers from the root JUL logger to prevent the default
+        // ConsoleHandler from duplicating every log record
         Logger rootJul = Logger.getLogger("");
-        for (Handler h : rootJul.getHandlers()) rootJul.removeHandler(h);
+        for (Handler h : rootJul.getHandlers()) {
+            rootJul.removeHandler(h);
+        }
 
-        // Our package-level logger
+        // Obtain (or create) the package-level logger
         Logger pkgLogger = Logger.getLogger(ROOT_LOGGER_NAME);
-        pkgLogger.setUseParentHandlers(false);
+        pkgLogger.setUseParentHandlers(false); // do not propagate to root
         pkgLogger.setLevel(level);
 
         Formatter fmt = new SingleLineFormatter();
 
-        // Console handler
-        ConsoleHandler ch = new ConsoleHandler();
-        ch.setLevel(level);
-        ch.setFormatter(fmt);
-        pkgLogger.addHandler(ch);
+        // Console handler — writes to System.err (JUL default)
+        ConsoleHandler consoleHandler = new ConsoleHandler();
+        consoleHandler.setLevel(level);
+        consoleHandler.setFormatter(fmt);
+        pkgLogger.addHandler(consoleHandler);
 
-        // File handler (if path is non-empty)
+        // File handler — optional; skipped if path is blank
         if (logFilePath != null && !logFilePath.isBlank()) {
             try {
                 File logFile = new File(logFilePath);
+
+                // Create parent directories if they do not exist
                 if (logFile.getParentFile() != null) {
                     logFile.getParentFile().mkdirs();
                 }
-                // %g = generation number for rotation, %u = unique number
-                FileHandler fh = new FileHandler(
-                        logFile.getAbsolutePath(), 10_000_000 /*10 MB*/, 5, true);
-                fh.setLevel(level);
-                fh.setFormatter(fmt);
-                pkgLogger.addHandler(fh);
+
+                // Rotating file handler: 10 MB per file, 5 generations, append mode
+                FileHandler fileHandler = new FileHandler(
+                        logFile.getAbsolutePath(),
+                        LOG_FILE_MAX_BYTES,
+                        LOG_FILE_COUNT,
+                        true /* append */);
+                fileHandler.setLevel(level);
+                fileHandler.setFormatter(fmt);
+                pkgLogger.addHandler(fileHandler);
+
             } catch (IOException e) {
-                pkgLogger.warning("Could not open log file '" + logFilePath +
-                                  "': " + e.getMessage());
+                // Log to console only — file logging is unavailable
+                pkgLogger.warning("Could not open log file '"
+                        + logFilePath + "': " + e.getMessage()
+                        + " — file logging disabled.");
             }
         }
     }
 
-    /** Obtain a JUL logger for the given class. */
+    /**
+     * Obtain a JUL {@link Logger} for the given class.
+     * <p>
+     * The returned logger is a child of the package-level logger configured
+     * by {@link #configure(String, String)} and therefore inherits its level
+     * and handlers automatically.
+     *
+     * @param clazz the class requesting the logger
+     * @return a JUL {@link Logger} named after {@code clazz}
+     */
     public static Logger get(Class<?> clazz) {
         return Logger.getLogger(clazz.getName());
     }
 
-    // ── Custom single-line formatter ───────────────────────────────────────
+    // ── Custom formatter ───────────────────────────────────────────────────
 
+    /**
+     * Single-line log formatter that produces records in the format:
+     * <pre>
+     *   yyyy-MM-dd HH:mm:ss [LEVEL  ] ShortClassName            - message
+     * </pre>
+     * If the record carries a {@link Throwable}, its stack trace is appended
+     * on subsequent lines (each prefixed with {@code "    at "}).
+     */
     private static final class SingleLineFormatter extends Formatter {
+
+        /**
+         * Date/time formatter.
+         * <p>
+         * {@link SimpleDateFormat} is not thread-safe; access to this instance
+         * is safe here because JUL calls {@link #format(LogRecord)} from a
+         * single handler thread.
+         */
         private final SimpleDateFormat sdf =
                 new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
+        /**
+         * Format a single log record into a human-readable single-line string.
+         *
+         * @param r the log record to format
+         * @return formatted log line (always ends with {@code '\n'})
+         */
         @Override
         public String format(LogRecord r) {
-            String ts     = sdf.format(new Date(r.getMillis()));
-            String level  = String.format("%-7s", r.getLevel().getName());
-            String logger = r.getLoggerName();
-            // Shorten logger name: keep only the simple class name
-            int dot = logger.lastIndexOf('.');
-            if (dot >= 0) logger = logger.substring(dot + 1);
-            logger = String.format("%-25s", logger);
+            // Timestamp
+            String timestamp = sdf.format(new Date(r.getMillis()));
+
+            // Level — right-padded to 7 chars so columns align
+            String level = String.format("%-7s", r.getLevel().getName());
+
+            // Logger name — keep only the simple class name for brevity
+            String loggerName = r.getLoggerName();
+            int dot = loggerName.lastIndexOf('.');
+            if (dot >= 0) loggerName = loggerName.substring(dot + 1);
+            loggerName = String.format("%-25s", loggerName);
 
             StringBuilder sb = new StringBuilder();
-            sb.append(ts).append(" [").append(level).append("] ")
-              .append(logger).append(" - ")
-              .append(formatMessage(r)).append('\n');
+            sb.append(timestamp)
+              .append(" [").append(level).append("] ")
+              .append(loggerName)
+              .append(" - ")
+              .append(formatMessage(r))
+              .append('\n');
 
+            // Append stack trace if a Throwable is attached
             if (r.getThrown() != null) {
-                // Append first few lines of stack trace
-                for (StackTraceElement e : r.getThrown().getStackTrace()) {
-                    sb.append("    at ").append(e).append('\n');
+                sb.append("  Exception: ")
+                  .append(r.getThrown()).append('\n');
+                for (StackTraceElement frame : r.getThrown().getStackTrace()) {
+                    sb.append("    at ").append(frame).append('\n');
                 }
             }
+
             return sb.toString();
         }
     }

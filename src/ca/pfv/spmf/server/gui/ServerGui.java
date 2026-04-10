@@ -1,22 +1,66 @@
 package ca.pfv.spmf.server.gui;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Desktop;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.File;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
+
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.JTextPane;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
+import javax.swing.UIManager;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.TitledBorder;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Style;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
+
 import ca.pfv.spmf.server.ServerConfig;
 import ca.pfv.spmf.server.ServerMain;
 import ca.pfv.spmf.server.util.ServerLogger;
 
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.border.TitledBorder;
-import javax.swing.text.*;
-import java.awt.*;
-import java.awt.event.*;
-import java.io.File;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.util.logging.*;
 /*
  *  Copyright (c) 2026 Philippe Fournier-Viger
- * 
+ *
  * This file is part of the SPMF SERVER
  * (http://www.philippe-fournier-viger.com/spmf).
  *
@@ -36,37 +80,43 @@ import java.util.logging.*;
 /**
  * Swing GUI for SPMF-Server.
  *
- * Features:
- *  - Configuration panel (port, threads, work dir, API key, log level)
- *  - Start / Stop buttons
- *  - Live log console (JTextPane with colour-coded levels)
- *  - Status bar (running indicator, algorithm count, active jobs)
- *  - Browse buttons for config file and work directory
- *  - "Open work dir" button
- *  - About dialog (author, license, version)
- *  - Graceful shutdown on window close
+ * <p>Layout:
+ * <pre>
+ *   ┌────────────────────────────────────────────────────────┐
+ *   │  North bar  (title, version, config file row)          │
+ *   ├──────────────┬─────────────────────────────────────────┤
+ *   │              │  ┌─ Server Log ──┬─ Jobs ─────────────┐ │
+ *   │  Config      │  │               │                     │ │
+ *   │  panel       │  │  Log console  │  Job table          │ │
+ *   │  (scroll)    │  │               │                     │ │
+ *   │              │  └───────────────┴─────────────────────┘ │
+ *   ├──────────────┴─────────────────────────────────────────┤
+ *   │  Status bar  (LED · port · algorithm count · jobs)     │
+ *   └────────────────────────────────────────────────────────┘
+ * </pre>
+ *
+ * @author Philippe Fournier-Viger
  */
 public class ServerGui {
 
     // ── Colours ────────────────────────────────────────────────────────────
-    private static final Color BG_DARK     = new Color(30,  30,  30);
-    private static final Color BG_PANEL    = new Color(45,  45,  48);
-    private static final Color BG_INPUT    = new Color(60,  60,  63);
-    private static final Color FG_TEXT     = new Color(220, 220, 220);
-    private static final Color FG_LABEL    = new Color(180, 180, 180);
-    private static final Color CLR_INFO    = new Color(100, 200, 100);
-    private static final Color CLR_WARN    = new Color(255, 200,  60);
-    private static final Color CLR_ERROR   = new Color(255,  80,  80);
-    private static final Color CLR_DEBUG   = new Color(120, 180, 255);
-    private static final Color CLR_TIME    = new Color(140, 140, 140);
-    private static final Color GREEN_LED   = new Color( 50, 200,  80);
-    private static final Color RED_LED     = new Color(200,  50,  50);
-    private static final Color ACCENT      = new Color( 70, 130, 200);
+    private static final Color BG_DARK   = new Color(30,  30,  30);
+    private static final Color BG_PANEL  = new Color(45,  45,  48);
+    private static final Color BG_INPUT  = new Color(60,  60,  63);
+    private static final Color FG_TEXT   = new Color(220, 220, 220);
+    private static final Color FG_LABEL  = new Color(180, 180, 180);
+    private static final Color CLR_INFO  = new Color(100, 200, 100);
+    private static final Color CLR_WARN  = new Color(255, 200,  60);
+    private static final Color CLR_ERROR = new Color(255,  80,  80);
+    private static final Color CLR_DEBUG = new Color(120, 180, 255);
+    private static final Color GREEN_LED = new Color( 50, 200,  80);
+    private static final Color RED_LED   = new Color(200,  50,  50);
+    private static final Color ACCENT    = new Color( 70, 130, 200);
 
     // ── Version / product constants ────────────────────────────────────────
     private static final String APP_VERSION  = "1.0.0";
     private static final String APP_NAME     = "SPMF-Server";
-    private static final String AUTHOR       = "Philippe Fournier-Viger";
+    private static final String AUTHOR       = "Philippe Fournier-Viger and contributors";
     private static final String WEBSITE      = "https://www.philippe-fournier-viger.com/spmf/";
     private static final String LICENSE_NAME = "GNU General Public License v3.0  (GPLv3)";
     private static final String LICENSE_URL  = "https://www.gnu.org/licenses/gpl-3.0.html";
@@ -89,21 +139,12 @@ public class ServerGui {
             "License along with this program.  If not, see:\n" +
             LICENSE_URL;
 
-    // ── Timer interval ─────────────────────────────────────────────────────
-    // FIX: was 1 000 ms — posting a Swing event every second caused the
-    //      TimerQueue to accumulate events faster than the EDT could drain
-    //      them, eventually exhausting heap.  5 000 ms is more than enough
-    //      for a status bar that shows rough counts.
     private static final int STATUS_TIMER_INTERVAL_MS = 5_000;
-
-    // ── Log size cap ───────────────────────────────────────────────────────
-    // FIX: keep the in-memory log document small so it cannot grow without
-    //      bound and contribute to heap pressure.
-    private static final int LOG_MAX_CHARS = 100_000;   // ~3 000 lines
+    private static final int LOG_MAX_CHARS = 100_000;
 
     // ── State ──────────────────────────────────────────────────────────────
-    private final String      initialConfigPath;
-    private ServerConfig      loadedConfig;
+    private final String initialConfigPath;
+    private ServerConfig loadedConfig;
 
     // ── Swing components ───────────────────────────────────────────────────
     private JFrame            frame;
@@ -114,6 +155,7 @@ public class ServerGui {
     private JTextField        tfWorkDir;
     private JTextField        tfApiKey;
     private JTextField        tfTtl;
+    private JTextField        tfJobTimeout;   // ← NEW: execution timeout field
     private JTextField        tfMaxQueueSize;
     private JTextField        tfMaxInputMb;
     private JComboBox<String> cbLogLevel;
@@ -133,6 +175,19 @@ public class ServerGui {
     private StyledDocument    logDoc;
 
     private Timer             statusTimer;
+
+    /** Panel that shows the live job list in the Jobs tab. */
+    private JobsPanel         jobsPanel;
+
+    /** The tabbed pane that hosts the log and jobs panels. */
+    private JTabbedPane       tabbedPane;
+
+    /**
+     * All config-editing components that must be disabled while the server
+     * is running (to prevent the user from editing values that have no
+     * effect until the next start).
+     */
+    private final java.util.List<JComponent> configComponents = new java.util.ArrayList<>();
 
     // ── Constructor ────────────────────────────────────────────────────────
 
@@ -160,7 +215,7 @@ public class ServerGui {
             @Override public void windowClosing(WindowEvent e) { onClose(); }
         });
 
-        frame.setPreferredSize(new Dimension(950, 750));
+        frame.setPreferredSize(new Dimension(1100, 780));
         frame.getContentPane().setBackground(BG_DARK);
         frame.setLayout(new BorderLayout(0, 0));
 
@@ -172,28 +227,20 @@ public class ServerGui {
         frame.pack();
         frame.setLocationRelativeTo(null);
 
-        // ── FIX: use a longer interval and guard the callback against OOM ──
         statusTimer = new Timer(STATUS_TIMER_INTERVAL_MS, e -> {
             try {
                 refreshStatusBar();
             } catch (OutOfMemoryError oom) {
-                // Stop the timer immediately so it stops posting new events.
-                // Log to stderr because the logging system may also be OOM.
                 statusTimer.stop();
-                System.err.println("[SPMF-Server] OOM in status timer — " +
-                                   "timer stopped. Restart the server with " +
-                                   "more heap (-Xmx).");
+                System.err.println("[SPMF-Server] OOM in status timer — timer stopped.");
             }
         });
-        // FIX: do not coalesce — if the EDT falls behind, old events are
-        //      dropped rather than piling up in the TimerQueue.
-        statusTimer.setCoalesce(true);   // default is true, stated explicitly
+        statusTimer.setCoalesce(true);
         statusTimer.setInitialDelay(STATUS_TIMER_INTERVAL_MS);
         statusTimer.start();
     }
 
     // ── Menu bar ───────────────────────────────────────────────────────────
-
     private JMenuBar buildMenuBar() {
         JMenuBar menuBar = new JMenuBar();
         menuBar.setBackground(BG_PANEL);
@@ -216,7 +263,6 @@ public class ServerGui {
     }
 
     // ── North bar ──────────────────────────────────────────────────────────
-
     private JPanel buildNorthBar() {
         JPanel p = new JPanel(new BorderLayout(8, 0));
         p.setBackground(BG_PANEL);
@@ -248,6 +294,7 @@ public class ServerGui {
         cfgRow.add(label("Config file:"));
         tfConfigFile = styledTextField(30);
         tfConfigFile.setText(initialConfigPath);
+        // Config file field is always editable (applies only at next start)
         cfgRow.add(tfConfigFile);
 
         JButton btnBrowseCfg = smallButton("Browse…");
@@ -259,17 +306,25 @@ public class ServerGui {
                 e -> loadConfigIntoFields(tfConfigFile.getText().trim()));
         cfgRow.add(btnReload);
 
+        // Note: we intentionally do NOT add tfConfigFile / btnBrowseCfg /
+        // btnReload to configComponents — it's always valid to browse/reload
+        // the file even while running (to see what values would be used on
+        // the next start). The fields ARE disabled while running; the buttons
+        // are kept enabled because they only update the displayed values.
+
         p.add(cfgRow, BorderLayout.EAST);
         return p;
     }
 
-    // ── Centre panel ───────────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    //  CENTRE PANEL
+    // ══════════════════════════════════════════════════════════════════════
 
     private JSplitPane buildCentrePanel() {
         JSplitPane split = new JSplitPane(
                 JSplitPane.HORIZONTAL_SPLIT,
                 buildConfigPanel(),
-                buildLogPanel());
+                buildRightTabbedPane());
         split.setDividerLocation(340);
         split.setResizeWeight(0.0);
         split.setBackground(BG_DARK);
@@ -278,7 +333,37 @@ public class ServerGui {
         return split;
     }
 
-    // ── Left config panel ──────────────────────────────────────────────────
+    /**
+     * Build the tabbed pane that holds the Server Log tab and the Jobs tab.
+     */
+    private JTabbedPane buildRightTabbedPane() {
+        UIManager.put("TabbedPane.selected",          BG_DARK);
+        UIManager.put("TabbedPane.background",        BG_PANEL);
+        UIManager.put("TabbedPane.foreground",        FG_TEXT);
+        UIManager.put("TabbedPane.contentAreaColor",  BG_DARK);
+        UIManager.put("TabbedPane.tabAreaBackground", BG_PANEL);
+
+        tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+        tabbedPane.setBackground(BG_PANEL);
+        tabbedPane.setForeground(FG_TEXT);
+        tabbedPane.setFont(new Font("SansSerif", Font.BOLD, 12));
+        tabbedPane.setBorder(null);
+
+        tabbedPane.addTab("📋  Server Log", buildLogPanel());
+
+        jobsPanel = new JobsPanel();
+        tabbedPane.addTab("⚙  Jobs", jobsPanel);
+
+        tabbedPane.addChangeListener(e -> {
+            if (tabbedPane.getSelectedComponent() == jobsPanel) {
+                jobsPanel.refresh();
+            }
+        });
+
+        return tabbedPane;
+    }
+
+    // ── Config panel ───────────────────────────────────────────────────────
 
     private JScrollPane buildConfigPanel() {
         JPanel p = new JPanel();
@@ -314,6 +399,8 @@ public class ServerGui {
         tfPort = styledTextField(7);
         addRow(p, "Host:", tfHost);
         addRow(p, "Port:", tfPort);
+        configComponents.add(tfHost);
+        configComponents.add(tfPort);
         return p;
     }
 
@@ -323,19 +410,29 @@ public class ServerGui {
         tfMaxThreads  = styledTextField(5);
         addRow(p, "Core threads:", tfCoreThreads);
         addRow(p, "Max threads:",  tfMaxThreads);
+        configComponents.add(tfCoreThreads);
+        configComponents.add(tfMaxThreads);
         return p;
     }
 
     private JPanel buildJobSection() {
         JPanel p = titledSection("Jobs & Files");
         tfTtl          = styledTextField(5);
+        tfJobTimeout   = styledTextField(5);   // ← NEW
         tfMaxQueueSize = styledTextField(5);
         tfMaxInputMb   = styledTextField(5);
         tfWorkDir      = styledTextField(14);
 
-        addRow(p, "Job TTL (min):",  tfTtl);
-        addRow(p, "Max queue size:", tfMaxQueueSize);
-        addRow(p, "Max input (MB):", tfMaxInputMb);
+        tfTtl.setToolTipText(
+                "How long (minutes) a finished job is kept before being purged");
+        tfJobTimeout.setToolTipText(
+                "Maximum wall-clock time (minutes) an algorithm is allowed to run " +
+                "before the child process is killed");
+
+        addRow(p, "Job TTL (min):",     tfTtl);
+        addRow(p, "Timeout (min):",     tfJobTimeout);   // ← NEW row
+        addRow(p, "Max queue size:",    tfMaxQueueSize);
+        addRow(p, "Max input (MB):",    tfMaxInputMb);
 
         JPanel wdRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 2));
         wdRow.setOpaque(false);
@@ -345,6 +442,13 @@ public class ServerGui {
         wdRow.add(Box.createHorizontalStrut(4));
         wdRow.add(btnBrowseWd);
         addRowRaw(p, "Work dir:", wdRow);
+
+        configComponents.add(tfTtl);
+        configComponents.add(tfJobTimeout);
+        configComponents.add(tfMaxQueueSize);
+        configComponents.add(tfMaxInputMb);
+        configComponents.add(tfWorkDir);
+
         return p;
     }
 
@@ -353,6 +457,7 @@ public class ServerGui {
         tfApiKey = styledTextField(20);
         tfApiKey.setToolTipText("Leave blank to disable API key authentication");
         addRow(p, "API key:", tfApiKey);
+        configComponents.add(tfApiKey);
         return p;
     }
 
@@ -362,6 +467,7 @@ public class ServerGui {
         cbLogLevel = new JComboBox<>(levels);
         styleCombo(cbLogLevel);
         addRowRaw(p, "Log level:", cbLogLevel);
+        configComponents.add(cbLogLevel);
         return p;
     }
 
@@ -398,7 +504,7 @@ public class ServerGui {
         return p;
     }
 
-    // ── Right log panel ────────────────────────────────────────────────────
+    // ── Log panel ──────────────────────────────────────────────────────────
 
     private JPanel buildLogPanel() {
         JPanel p = new JPanel(new BorderLayout());
@@ -461,6 +567,314 @@ public class ServerGui {
         p.add(lblActiveJobs);
 
         return p;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  ACTIONS
+    // ══════════════════════════════════════════════════════════════════════
+
+    private void onStart() {
+        ServerConfig cfg = buildConfigFromFields();
+        if (cfg == null) return;
+
+        btnStart.setEnabled(false);
+        setConfigFieldsEnabled(false);   // ← disable config while running
+        appendLog("Starting server on port " + cfg.getPort() + "…", Level.INFO);
+
+        new Thread(() -> {
+            try {
+                ServerLogger.configure(cfg.getLogLevel(), cfg.getLogFile());
+                ServerMain.startServer(cfg);
+                loadedConfig = cfg;
+                SwingUtilities.invokeLater(() -> {
+                    btnStop.setEnabled(true);
+                    appendLog("Server is running on port " + cfg.getPort(),
+                              Level.INFO);
+                    refreshStatusBar();
+                    tabbedPane.setSelectedComponent(jobsPanel);
+                    jobsPanel.refresh();
+                });
+            } catch (Exception ex) {
+                SwingUtilities.invokeLater(() -> {
+                    btnStart.setEnabled(true);
+                    setConfigFieldsEnabled(true);   // ← re-enable on failure
+                    appendLog("ERROR starting server: " + ex.getMessage(),
+                              Level.SEVERE);
+                    JOptionPane.showMessageDialog(frame,
+                            "Failed to start server:\n" + ex.getMessage(),
+                            "Start Error", JOptionPane.ERROR_MESSAGE);
+                });
+            }
+        }, "gui-start-thread").start();
+    }
+
+    private void onStop() {
+        btnStop.setEnabled(false);
+        appendLog("Stopping server…", Level.INFO);
+        new Thread(() -> {
+            ServerMain.stopServer();
+            SwingUtilities.invokeLater(() -> {
+                btnStart.setEnabled(true);
+                setConfigFieldsEnabled(true);   // ← re-enable after stop
+                appendLog("Server stopped.", Level.INFO);
+                refreshStatusBar();
+                jobsPanel.refresh();
+            });
+        }, "gui-stop-thread").start();
+    }
+
+    private void onClose() {
+        if (ServerMain.running) {
+            int choice = JOptionPane.showConfirmDialog(
+                    frame,
+                    "The server is still running.\nStop it and exit?",
+                    "Confirm Exit",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE);
+            if (choice != JOptionPane.YES_OPTION) return;
+            ServerMain.stopServer();
+        }
+        statusTimer.stop();
+        jobsPanel.stopRefreshTimer();   // ← renamed from dispose()
+        frame.dispose();
+        System.exit(0);
+    }
+
+    // ── Enable / disable all config components ─────────────────────────────
+
+    /**
+     * Enable or disable all configuration-editing components at once.
+     * <p>
+     * Called with {@code false} when the server starts (to prevent confusing
+     * mid-run edits) and with {@code true} when the server stops or fails
+     * to start.
+     *
+     * @param enabled {@code true} to enable, {@code false} to disable
+     */
+    private void setConfigFieldsEnabled(boolean enabled) {
+        for (JComponent c : configComponents) {
+            c.setEnabled(enabled);
+        }
+        // Give disabled fields a visual cue: darken the background slightly
+        Color bg = enabled ? BG_INPUT : new Color(45, 45, 45);
+        for (JComponent c : configComponents) {
+            if (c instanceof JTextField tf) {
+                tf.setBackground(bg);
+            }
+        }
+    }
+
+    // ── Browse / open helpers ──────────────────────────────────────────────
+
+    private void browseConfigFile() {
+        JFileChooser fc = new JFileChooser(".");
+        fc.setDialogTitle("Select configuration file");
+        fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
+                "Properties files (*.properties)", "properties"));
+        if (fc.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
+            String path = fc.getSelectedFile().getAbsolutePath();
+            tfConfigFile.setText(path);
+            loadConfigIntoFields(path);
+        }
+    }
+
+    private void browseWorkDir() {
+        JFileChooser fc = new JFileChooser(tfWorkDir.getText().trim());
+        fc.setDialogTitle("Select work directory");
+        fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        if (fc.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
+            tfWorkDir.setText(fc.getSelectedFile().getAbsolutePath());
+        }
+    }
+
+    private void openWorkDir() {
+        String path = (loadedConfig != null)
+                ? loadedConfig.getWorkDir()
+                : tfWorkDir.getText().trim();
+        try {
+            File dir = new File(path);
+            if (!dir.exists()) dir.mkdirs();
+            Desktop.getDesktop().open(dir);
+        } catch (Exception ex) {
+            appendLog("Cannot open work dir: " + ex.getMessage(), Level.WARNING);
+        }
+    }
+
+    // ── Status bar refresh ─────────────────────────────────────────────────
+
+    private void refreshStatusBar() {
+        if (ServerMain.running) {
+            ledIndicator.setForeground(GREEN_LED);
+            int port    = (loadedConfig != null) ? loadedConfig.getPort() : 0;
+            int timeout = (loadedConfig != null) ? loadedConfig.getJobTimeoutMinutes() : 0;
+            lblStatus.setText("Running  \u00B7  port " + port
+                    + "  \u00B7  timeout " + timeout + " min");
+            int algos = (ServerMain.catalogue != null)
+                    ? ServerMain.catalogue.size() : 0;
+            lblAlgoCount.setText("Algorithms: " + algos);
+            int active = (ServerMain.jobManager != null)
+                    ? ServerMain.jobManager.activeJobCount() : 0;
+            int queued = (ServerMain.jobManager != null)
+                    ? ServerMain.jobManager.queuedJobCount() : 0;
+            lblActiveJobs.setText(
+                    "Active jobs: " + active + "  Queued: " + queued);
+        } else {
+            ledIndicator.setForeground(RED_LED);
+            lblStatus.setText("Stopped");
+            lblActiveJobs.setText("Active jobs: 0");
+        }
+    }
+
+    // ── Config ↔ fields ────────────────────────────────────────────────────
+
+    /**
+     * Populate all config text fields from the given properties file.
+     * If the server is currently running the fields remain disabled (the
+     * values are shown read-only for reference).
+     *
+     * @param path path to the {@code .properties} file to load
+     */
+    private void loadConfigIntoFields(String path) {
+        ServerConfig c = ServerConfig.load(path);
+        tfHost.setText(c.getHost());
+        tfPort.setText(String.valueOf(c.getPort()));
+        tfCoreThreads.setText(String.valueOf(c.getCoreThreads()));
+        tfMaxThreads.setText(String.valueOf(c.getMaxThreads()));
+        tfTtl.setText(String.valueOf(c.getJobTtlMinutes()));
+        tfJobTimeout.setText(String.valueOf(c.getJobTimeoutMinutes()));  // ← NEW
+        tfMaxQueueSize.setText(String.valueOf(c.getMaxQueueSize()));
+        tfMaxInputMb.setText(String.valueOf(c.getMaxInputSizeMb()));
+        tfWorkDir.setText(c.getWorkDir());
+        tfApiKey.setText(c.getApiKey());
+        cbLogLevel.setSelectedItem(c.getLogLevel().toUpperCase());
+        appendLog("Configuration loaded from: " + path, Level.INFO);
+    }
+
+    /**
+     * Read all config fields from the GUI and return a {@link ServerConfig}.
+     * <p>
+     * Returns {@code null} and shows an error dialog if any field contains
+     * an invalid value.
+     *
+     * @return a fully populated {@link ServerConfig}, or {@code null} on
+     *         validation failure
+     */
+    private ServerConfig buildConfigFromFields() {
+        try {
+            int port = Integer.parseInt(tfPort.getText().trim());
+            if (port < 1 || port > 65535)
+                throw new NumberFormatException("port range");
+            int core = Integer.parseInt(tfCoreThreads.getText().trim());
+            int max  = Integer.parseInt(tfMaxThreads.getText().trim());
+            if (core < 1)
+                throw new NumberFormatException("coreThreads must be >= 1");
+            if (max < core)
+                throw new NumberFormatException(
+                        "maxThreads must be >= coreThreads (" + core + ")");
+            int ttl     = Integer.parseInt(tfTtl.getText().trim());
+            int timeout = Integer.parseInt(tfJobTimeout.getText().trim()); // ← NEW
+            if (ttl < 1)
+                throw new NumberFormatException("Job TTL must be >= 1");
+            if (timeout < 1)
+                throw new NumberFormatException("Job timeout must be >= 1");
+            Integer.parseInt(tfMaxQueueSize.getText().trim());
+            Integer.parseInt(tfMaxInputMb.getText().trim());
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(frame,
+                    "Invalid numeric value in configuration:\n" + e.getMessage()
+                    + "\n\nPlease check port, threads, TTL, timeout, etc.",
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+
+        java.util.Properties p = new java.util.Properties();
+        p.setProperty("server.host",           tfHost.getText().trim());
+        p.setProperty("server.port",           tfPort.getText().trim());
+        p.setProperty("executor.coreThreads",  tfCoreThreads.getText().trim());
+        p.setProperty("executor.maxThreads",   tfMaxThreads.getText().trim());
+        p.setProperty("job.ttlMinutes",        tfTtl.getText().trim());
+        p.setProperty("job.timeoutMinutes",    tfJobTimeout.getText().trim());  // ← NEW
+        p.setProperty("job.maxQueueSize",      tfMaxQueueSize.getText().trim());
+        p.setProperty("input.maxSizeMb",       tfMaxInputMb.getText().trim());
+        p.setProperty("work.dir",              tfWorkDir.getText().trim());
+        p.setProperty("security.apiKey",       tfApiKey.getText().trim());
+        p.setProperty("log.level",
+                cbLogLevel.getSelectedItem() != null
+                        ? cbLogLevel.getSelectedItem().toString() : "INFO");
+        p.setProperty("log.file",
+                loadedConfig != null
+                        ? loadedConfig.getLogFile()
+                        : "./logs/spmf-server.log");
+
+        try {
+            File tmp = File.createTempFile("spmf-gui-", ".properties");
+            tmp.deleteOnExit();
+            try (java.io.FileOutputStream fos =
+                         new java.io.FileOutputStream(tmp)) {
+                p.store(fos, "Generated by SPMF-Server GUI");
+            }
+            return ServerConfig.load(tmp.getAbsolutePath());
+        } catch (Exception e) {
+            appendLog("Could not build config: " + e.getMessage(), Level.SEVERE);
+            return null;
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  LOGGING
+    // ══════════════════════════════════════════════════════════════════════
+
+    private void installLogHandler() {
+        Handler guiHandler = new Handler() {
+            @Override public void publish(LogRecord r) {
+                if (!isLoggable(r)) return;
+                String msg = getFormatter().format(r);
+                SwingUtilities.invokeLater(() -> appendRawLog(msg, r.getLevel()));
+            }
+            @Override public void flush() {}
+            @Override public void close() {}
+        };
+        guiHandler.setFormatter(new SimpleFormatter());
+        guiHandler.setLevel(Level.ALL);
+
+        Logger pkgLogger = Logger.getLogger("ca.pfv.spmfserver");
+        pkgLogger.addHandler(guiHandler);
+    }
+
+    public void appendLog(String message, Level level) {
+        String ts   = LocalTime.now().format(
+                DateTimeFormatter.ofPattern("HH:mm:ss"));
+        String line = "[" + ts + "] " + level.getName() + "  " + message + "\n";
+        SwingUtilities.invokeLater(() -> appendRawLog(line, level));
+    }
+
+    private void appendRawLog(String text, Level level) {
+        try {
+            int excess = logDoc.getLength() + text.length() - LOG_MAX_CHARS;
+            if (excess > 0) {
+                logDoc.remove(0, Math.min(excess, logDoc.getLength()));
+            }
+
+            Style lvlStyle = logPane.addStyle("level", null);
+            Color c;
+            if      (level.intValue() >= Level.SEVERE.intValue())  c = CLR_ERROR;
+            else if (level.intValue() >= Level.WARNING.intValue()) c = CLR_WARN;
+            else if (level.intValue() >= Level.FINE.intValue())    c = CLR_DEBUG;
+            else                                                    c = CLR_INFO;
+            StyleConstants.setForeground(lvlStyle, c);
+
+            logDoc.insertString(logDoc.getLength(), text, lvlStyle);
+            logPane.setCaretPosition(logDoc.getLength());
+
+        } catch (BadLocationException ignored) {
+        } catch (OutOfMemoryError oom) {
+            try {
+                logDoc.remove(0, logDoc.getLength());
+                Style s = logPane.addStyle("err", null);
+                StyleConstants.setForeground(s, CLR_ERROR);
+                logDoc.insertString(0, "[LOG CLEARED — OutOfMemoryError]\n", s);
+            } catch (BadLocationException ignored) {}
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -533,27 +947,22 @@ public class ServerGui {
             { "Copyright",  COPYRIGHT    },
             { "Built with", "Java  \u2022  Swing  \u2022  SPMF Library" },
         };
-
         for (String[] row : rows) {
             JPanel rowPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 3));
             rowPanel.setOpaque(false);
-
             JLabel keyLbl = new JLabel(row[0] + ":  ");
             keyLbl.setFont(new Font("SansSerif", Font.BOLD, 12));
             keyLbl.setForeground(new Color(100, 160, 220));
             keyLbl.setPreferredSize(new Dimension(90, 20));
             rowPanel.add(keyLbl);
-
             JLabel valLbl = new JLabel(row[1]);
             valLbl.setFont(new Font("SansSerif", Font.PLAIN, 12));
             valLbl.setForeground(FG_TEXT);
             rowPanel.add(valLbl);
-
             card.add(rowPanel);
         }
         content.add(card);
         content.add(Box.createVerticalStrut(12));
-
         content.add(makeDivider());
         content.add(Box.createVerticalStrut(8));
 
@@ -571,26 +980,22 @@ public class ServerGui {
         licArea.setFont(new Font("Monospaced", Font.PLAIN, 11));
         licArea.setForeground(new Color(160, 160, 160));
         JScrollPane licScroll = new JScrollPane(licArea);
-        licScroll.setBorder(BorderFactory.createLineBorder(
-                new Color(70, 70, 70)));
+        licScroll.setBorder(BorderFactory.createLineBorder(new Color(70, 70, 70)));
         licScroll.setBackground(new Color(22, 22, 22));
         licScroll.getViewport().setBackground(new Color(22, 22, 22));
         licScroll.setPreferredSize(new Dimension(480, 160));
         licScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
         content.add(licScroll);
         content.add(Box.createVerticalStrut(16));
-
         content.add(makeDivider());
         content.add(Box.createVerticalStrut(12));
 
         JPanel bottomRow = new JPanel(new BorderLayout());
         bottomRow.setOpaque(false);
-
         JLabel copyrightLbl = new JLabel(COPYRIGHT);
         copyrightLbl.setFont(new Font("SansSerif", Font.ITALIC, 10));
         copyrightLbl.setForeground(new Color(100, 100, 100));
         bottomRow.add(copyrightLbl, BorderLayout.WEST);
-
         JButton closeBtn = new JButton("Close");
         closeBtn.setBackground(ACCENT);
         closeBtn.setForeground(Color.WHITE);
@@ -599,7 +1004,6 @@ public class ServerGui {
         closeBtn.setBorder(new EmptyBorder(6, 20, 6, 20));
         closeBtn.addActionListener(e -> dialog.dispose());
         bottomRow.add(closeBtn, BorderLayout.EAST);
-
         content.add(bottomRow);
         content.add(Box.createVerticalStrut(4));
 
@@ -635,269 +1039,6 @@ public class ServerGui {
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    //  ACTIONS
-    // ══════════════════════════════════════════════════════════════════════
-
-    private void onStart() {
-        ServerConfig cfg = buildConfigFromFields();
-        if (cfg == null) return;
-
-        btnStart.setEnabled(false);
-        appendLog("Starting server on port " + cfg.getPort() + "…", Level.INFO);
-
-        new Thread(() -> {
-            try {
-                ServerLogger.configure(cfg.getLogLevel(), cfg.getLogFile());
-                ServerMain.startServer(cfg);
-                loadedConfig = cfg;
-                SwingUtilities.invokeLater(() -> {
-                    btnStop.setEnabled(true);
-                    appendLog("Server is running on port " + cfg.getPort(),
-                              Level.INFO);
-                    refreshStatusBar();
-                });
-            } catch (Exception ex) {
-                SwingUtilities.invokeLater(() -> {
-                    btnStart.setEnabled(true);
-                    appendLog("ERROR starting server: " + ex.getMessage(),
-                              Level.SEVERE);
-                    JOptionPane.showMessageDialog(frame,
-                            "Failed to start server:\n" + ex.getMessage(),
-                            "Start Error", JOptionPane.ERROR_MESSAGE);
-                });
-            }
-        }, "gui-start-thread").start();
-    }
-
-    private void onStop() {
-        btnStop.setEnabled(false);
-        appendLog("Stopping server…", Level.INFO);
-        new Thread(() -> {
-            ServerMain.stopServer();
-            SwingUtilities.invokeLater(() -> {
-                btnStart.setEnabled(true);
-                appendLog("Server stopped.", Level.INFO);
-                refreshStatusBar();
-            });
-        }, "gui-stop-thread").start();
-    }
-
-    private void onClose() {
-        if (ServerMain.running) {
-            int choice = JOptionPane.showConfirmDialog(
-                    frame,
-                    "The server is still running.\nStop it and exit?",
-                    "Confirm Exit",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.WARNING_MESSAGE);
-            if (choice != JOptionPane.YES_OPTION) return;
-            ServerMain.stopServer();
-        }
-        statusTimer.stop();
-        frame.dispose();
-        System.exit(0);
-    }
-
-    private void browseConfigFile() {
-        JFileChooser fc = new JFileChooser(".");
-        fc.setDialogTitle("Select configuration file");
-        fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
-                "Properties files (*.properties)", "properties"));
-        if (fc.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
-            String path = fc.getSelectedFile().getAbsolutePath();
-            tfConfigFile.setText(path);
-            loadConfigIntoFields(path);
-        }
-    }
-
-    private void browseWorkDir() {
-        JFileChooser fc = new JFileChooser(tfWorkDir.getText().trim());
-        fc.setDialogTitle("Select work directory");
-        fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        if (fc.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
-            tfWorkDir.setText(fc.getSelectedFile().getAbsolutePath());
-        }
-    }
-
-    private void openWorkDir() {
-        String path = (loadedConfig != null)
-                ? loadedConfig.getWorkDir()
-                : tfWorkDir.getText().trim();
-        try {
-            File dir = new File(path);
-            if (!dir.exists()) dir.mkdirs();
-            Desktop.getDesktop().open(dir);
-        } catch (Exception ex) {
-            appendLog("Cannot open work dir: " + ex.getMessage(), Level.WARNING);
-        }
-    }
-
-    // ── Status bar refresh ─────────────────────────────────────────────────
-
-    /**
-     * Called every STATUS_TIMER_INTERVAL_MS ms from the Swing Timer.
-     *
-     * FIX: kept deliberately minimal — only reads volatile fields and sets
-     * label text.  No object allocation, no I/O, no lock contention.
-     * The OOM was caused by this method being called every 1 s and Swing
-     * accumulating timer events faster than the EDT could process them.
-     */
-    private void refreshStatusBar() {
-        if (ServerMain.running) {
-            ledIndicator.setForeground(GREEN_LED);
-            int port = (loadedConfig != null) ? loadedConfig.getPort() : 0;
-            lblStatus.setText("Running  \u00B7  port " + port);
-            int algos = (ServerMain.catalogue != null)
-                    ? ServerMain.catalogue.size() : 0;
-            lblAlgoCount.setText("Algorithms: " + algos);
-            int active = (ServerMain.jobManager != null)
-                    ? ServerMain.jobManager.activeJobCount() : 0;
-            int queued = (ServerMain.jobManager != null)
-                    ? ServerMain.jobManager.queuedJobCount() : 0;
-            lblActiveJobs.setText(
-                    "Active jobs: " + active + "  Queued: " + queued);
-        } else {
-            ledIndicator.setForeground(RED_LED);
-            lblStatus.setText("Stopped");
-            lblActiveJobs.setText("Active jobs: 0");
-        }
-    }
-
-    // ── Config → fields ────────────────────────────────────────────────────
-
-    private void loadConfigIntoFields(String path) {
-        ServerConfig c = ServerConfig.load(path);
-        tfHost.setText(c.getHost());
-        tfPort.setText(String.valueOf(c.getPort()));
-        tfCoreThreads.setText(String.valueOf(c.getCoreThreads()));
-        tfMaxThreads.setText(String.valueOf(c.getMaxThreads()));
-        tfTtl.setText(String.valueOf(c.getJobTtlMinutes()));
-        tfMaxQueueSize.setText(String.valueOf(c.getMaxQueueSize()));
-        tfMaxInputMb.setText(String.valueOf(c.getMaxInputSizeMb()));
-        tfWorkDir.setText(c.getWorkDir());
-        tfApiKey.setText(c.getApiKey());
-        cbLogLevel.setSelectedItem(c.getLogLevel().toUpperCase());
-        appendLog("Configuration loaded from: " + path, Level.INFO);
-    }
-
-    private ServerConfig buildConfigFromFields() {
-        try {
-            int port = Integer.parseInt(tfPort.getText().trim());
-            if (port < 1 || port > 65535)
-                throw new NumberFormatException("port range");
-            Integer.parseInt(tfCoreThreads.getText().trim());
-            Integer.parseInt(tfMaxThreads.getText().trim());
-            Integer.parseInt(tfTtl.getText().trim());
-            Integer.parseInt(tfMaxQueueSize.getText().trim());
-            Integer.parseInt(tfMaxInputMb.getText().trim());
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(frame,
-                    "Invalid numeric value in configuration.\n" +
-                    "Please check port, threads, TTL, etc.",
-                    "Validation Error", JOptionPane.ERROR_MESSAGE);
-            return null;
-        }
-
-        java.util.Properties p = new java.util.Properties();
-        p.setProperty("server.host",          tfHost.getText().trim());
-        p.setProperty("server.port",          tfPort.getText().trim());
-        p.setProperty("executor.coreThreads", tfCoreThreads.getText().trim());
-        p.setProperty("executor.maxThreads",  tfMaxThreads.getText().trim());
-        p.setProperty("job.ttlMinutes",       tfTtl.getText().trim());
-        p.setProperty("job.maxQueueSize",     tfMaxQueueSize.getText().trim());
-        p.setProperty("input.maxSizeMb",      tfMaxInputMb.getText().trim());
-        p.setProperty("work.dir",             tfWorkDir.getText().trim());
-        p.setProperty("security.apiKey",      tfApiKey.getText().trim());
-        p.setProperty("log.level",
-                cbLogLevel.getSelectedItem() != null
-                        ? cbLogLevel.getSelectedItem().toString() : "INFO");
-        p.setProperty("log.file",
-                loadedConfig != null
-                        ? loadedConfig.getLogFile()
-                        : "./logs/spmf-server.log");
-
-        try {
-            File tmp = File.createTempFile("spmf-gui-", ".properties");
-            tmp.deleteOnExit();
-            try (java.io.FileOutputStream fos =
-                         new java.io.FileOutputStream(tmp)) {
-                p.store(fos, "Generated by SPMF-Server GUI");
-            }
-            return ServerConfig.load(tmp.getAbsolutePath());
-        } catch (Exception e) {
-            appendLog("Could not build config: " + e.getMessage(), Level.SEVERE);
-            return null;
-        }
-    }
-
-    // ══════════════════════════════════════════════════════════════════════
-    //  LOGGING TO GUI CONSOLE
-    // ══════════════════════════════════════════════════════════════════════
-
-    private void installLogHandler() {
-        Handler guiHandler = new Handler() {
-            @Override public void publish(LogRecord r) {
-                if (!isLoggable(r)) return;
-                String msg = getFormatter().format(r);
-                SwingUtilities.invokeLater(() -> appendRawLog(msg, r.getLevel()));
-            }
-            @Override public void flush() {}
-            @Override public void close() {}
-        };
-        guiHandler.setFormatter(new SimpleFormatter());
-        guiHandler.setLevel(Level.ALL);
-
-        Logger pkgLogger = Logger.getLogger("ca.pfv.spmfserver");
-        pkgLogger.addHandler(guiHandler);
-    }
-
-    public void appendLog(String message, Level level) {
-        String ts   = LocalTime.now().format(
-                DateTimeFormatter.ofPattern("HH:mm:ss"));
-        String line = "[" + ts + "] " + level.getName() + "  " + message + "\n";
-        SwingUtilities.invokeLater(() -> appendRawLog(line, level));
-    }
-
-    /**
-     * FIX: log document size is capped at LOG_MAX_CHARS characters.
-     * Previously the cap was 200 000 chars; now it is 100 000 and the
-     * trimming happens BEFORE the insert, so the document never grows
-     * beyond the cap even during a flood of log messages from an algorithm.
-     */
-    private void appendRawLog(String text, Level level) {
-        try {
-            // ── Trim BEFORE inserting so the doc never exceeds the cap ─────
-            int excess = logDoc.getLength() + text.length() - LOG_MAX_CHARS;
-            if (excess > 0) {
-                // Remove from the top so the newest lines are always visible
-                logDoc.remove(0, Math.min(excess, logDoc.getLength()));
-            }
-
-            Style lvlStyle = logPane.addStyle("level", null);
-            Color c;
-            if      (level.intValue() >= Level.SEVERE.intValue())  c = CLR_ERROR;
-            else if (level.intValue() >= Level.WARNING.intValue()) c = CLR_WARN;
-            else if (level.intValue() >= Level.FINE.intValue())    c = CLR_DEBUG;
-            else                                                    c = CLR_INFO;
-            StyleConstants.setForeground(lvlStyle, c);
-
-            logDoc.insertString(logDoc.getLength(), text, lvlStyle);
-            logPane.setCaretPosition(logDoc.getLength());
-
-        } catch (BadLocationException ignored) {
-        } catch (OutOfMemoryError oom) {
-            // Last-resort: clear the log document entirely and note the OOM
-            try {
-                logDoc.remove(0, logDoc.getLength());
-                Style s = logPane.addStyle("err", null);
-                StyleConstants.setForeground(s, CLR_ERROR);
-                logDoc.insertString(0,
-                        "[LOG CLEARED — OutOfMemoryError]\n", s);
-            } catch (BadLocationException ignored) {}
-        }
-    }
-
-    // ══════════════════════════════════════════════════════════════════════
     //  SWING HELPERS
     // ══════════════════════════════════════════════════════════════════════
 
@@ -918,7 +1059,7 @@ public class ServerGui {
         JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 3));
         row.setOpaque(false);
         JLabel lbl = label(labelText);
-        lbl.setPreferredSize(new Dimension(110, 22));
+        lbl.setPreferredSize(new Dimension(115, 22));
         row.add(lbl);
         row.add(field);
         panel.add(row);
@@ -928,7 +1069,7 @@ public class ServerGui {
         JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 3));
         row.setOpaque(false);
         JLabel lbl = label(labelText);
-        lbl.setPreferredSize(new Dimension(110, 22));
+        lbl.setPreferredSize(new Dimension(115, 22));
         row.add(lbl);
         row.add(comp);
         panel.add(row);
