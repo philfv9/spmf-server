@@ -5,6 +5,12 @@
 
 # SPMF-Server
 
+<div align="center">
+  <img src="/images/spmf-server-logo.png" alt="SPMF GUI use case" width="600">
+  <br>
+  <em>SPMF Graphical User Interface</em>
+</div>
+
 A **REST API server** that exposes the [SPMF](http://philippe-fournier-viger.com/spmf/)
 data-mining library over HTTP, so that any language or tool can submit mining jobs
 and retrieve results without needing a local Java integration.
@@ -43,18 +49,11 @@ Clients submit a job (algorithm name + input data + parameters), the server
 runs the algorithm in an isolated child JVM process, and the client retrieves
 the result and console output when the job completes.
 
-```
-+----------------+        HTTP / JSON        +------------------+
-|   Any Client   | ----------------------->  |   SPMF-Server    |
-|  (curl, Python,| <-----------------------  |   (Java / HTTP)  |
-|   GUI, …)      |    results, job status    +--------+---------+
-+----------------+                                    |
-                                                      v
-                                             +------------------+
-                                             |   SPMF Library   |
-                                             |  300+ algorithms |
-                                             +------------------+
-```
+<div align="center">
+  <img src="/images/spmf-server.png" alt="SPMF GUI use case" width="600">
+  <br>
+  <em>SPMF Graphical User Interface</em>
+</div>
 
 **Related projects:**
 
