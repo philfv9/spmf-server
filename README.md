@@ -7,8 +7,6 @@
 
 <div align="center">
   <img src="/images/spmf-server-logo.png" alt="SPMF server" x>
-  <br>
-  <em>SPMF Graphical User Interface</em>
 </div>
 
 A **REST API server** that exposes the [SPMF](http://philippe-fournier-viger.com/spmf/)
