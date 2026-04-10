@@ -49,8 +49,6 @@ the result and console output when the job completes.
 
 <div align="center">
   <img src="/images/spmf-server.png" alt="SPMF GUI use case" width="600">
-  <br>
-  <em>SPMF Graphical User Interface</em>
 </div>
 
 **Related projects:**
