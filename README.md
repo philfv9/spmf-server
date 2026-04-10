@@ -1,5 +1,6 @@
-[![License](https://img.shields.io/github/license/philfv9/spmf-server.svg)](https://github.com/philfv9/spmf-server/blob/main/LICENSE) 
-[![Release](https://img.shields.io/github/v/release/philfv9/spmf-server.svg)](https://github.com/philfv9/spmf-server/releases/latest) 
+
+[![License](https://img.shields.io/github/license/philfv9/spmf-server.svg)](https://github.com/philfv9/spmf-server/blob/main/LICENSE)
+[![Release](https://img.shields.io/github/v/release/philfv9/spmf-server.svg)](https://github.com/philfv9/spmf-server/releases/latest)
 [![Stars](https://img.shields.io/github/stars/philfv9/spmf-server.svg)](https://github.com/philfv9/spmf-server/stargazers)
 
 # SPMF-Server
@@ -83,21 +84,35 @@ the result and console output when the job completes.
 
 The server is configured via a `.properties` file (default name:
 `spmf-server.properties`). All properties are optional — sensible defaults
-are used for any property that is absent.
+are used for any property that is absent or invalid.
 
 | Property | Default | Description |
 |---|---|---|
-| `server.port` | `8585` | TCP port the HTTP server listens on |
+| `server.port` | `8585` | TCP port the HTTP server listens on (1–65535) |
 | `server.host` | `0.0.0.0` | Bind address (`0.0.0.0` = all interfaces) |
-| `executor.coreThreads` | `4` | Always-alive worker threads in the job pool |
-| `executor.maxThreads` | `8` | Maximum worker threads under peak load |
-| `job.ttlMinutes` | `30` | Minutes a finished job is kept before auto-cleanup |
-| `job.maxQueueSize` | `100` | Maximum jobs waiting in the submission queue |
-| `work.dir` | `./spmf-work` | Directory for per-job input/output/console files |
-| `input.maxSizeMb` | `50` | Maximum upload size (MB) per job |
+| `executor.coreThreads` | `4` | Always-alive worker threads in the job pool (≥ 1) |
+| `executor.maxThreads` | `8` | Maximum worker threads under peak load (≥ coreThreads) |
+| `job.ttlMinutes` | `30` | Minutes a **finished** job is retained before auto-cleanup (≥ 1) |
+| `job.timeoutMinutes` | `10` | Maximum minutes an **algorithm** is allowed to run before being killed (≥ 1) |
+| `job.maxQueueSize` | `100` | Maximum jobs waiting in the submission queue (≥ 1) |
+| `work.dir` | `./spmf-work` | Directory for per-job input / output / console files |
+| `input.maxSizeMb` | `50` | Maximum upload size (MB) per job (≥ 1) |
 | `security.apiKey` | *(empty — disabled)* | If set, every request must include `X-API-Key: <value>` |
-| `log.level` | `INFO` | JUL log level (`FINE`, `INFO`, `WARNING`, `SEVERE`) |
-| `log.file` | `./logs/spmf-server.log` | Path to the rotating log file |
+| `log.level` | `INFO` | JUL log level (`OFF` `SEVERE` `WARNING` `INFO` `FINE` `FINER` `FINEST` `ALL`) |
+| `log.file` | `./logs/spmf-server.log` | Path to the rotating log file; leave blank to disable |
+
+### `job.ttlMinutes` vs `job.timeoutMinutes`
+
+These two properties are often confused:
+
+| Property | When it fires | What it does |
+|---|---|---|
+| `job.timeoutMinutes` | While the job is **RUNNING** | Kills the child JVM process if the algorithm exceeds this time |
+| `job.ttlMinutes` | After the job is **DONE or FAILED** | Purges the finished job from memory and disk after this many minutes |
+
+A typical setup might use `job.timeoutMinutes=10` (kill slow algorithms after
+10 minutes) and `job.ttlMinutes=60` (keep results accessible for 1 hour after
+completion).
 
 **Example `spmf-server.properties`:**
 
@@ -107,6 +122,7 @@ server.host=0.0.0.0
 executor.coreThreads=4
 executor.maxThreads=8
 job.ttlMinutes=30
+job.timeoutMinutes=10
 job.maxQueueSize=100
 work.dir=./spmf-work
 input.maxSizeMb=50
@@ -183,12 +199,24 @@ java -Xmx512m -cp "spmf-server.jar;spmf.jar" ca.pfv.spmf.server.ServerMain
 java -Xmx512m -cp "spmf-server.jar:spmf.jar" ca.pfv.spmf.server.ServerMain
 ```
 
+The GUI lets you:
+
+- Browse for and reload a `.properties` file without restarting.
+- Edit all configuration values in text fields (fields are locked while
+  the server is running to prevent confusing mid-run edits).
+- Start and stop the server with a single button click.
+- Monitor the live job queue in the **Jobs** tab.
+- View algorithm output, error messages, and raw child-process console logs
+  without leaving the application.
+- Open the working directory in your system file manager.
+
 ---
 
 ### Option 4 — All defaults, no properties file
 
 If `spmf-server.properties` does not exist the server starts with built-in
-defaults (port 8585, no API key, etc.).
+defaults (port 8585, 10-minute execution timeout, 30-minute TTL, no API key,
+etc.).
 
 **Windows:**
 ```bat
@@ -202,12 +230,12 @@ java -Xmx512m -cp "spmf-server.jar:spmf.jar" ca.pfv.spmf.server.ServerMain --hea
 
 ---
 
-### Increasing the heap size
+### Controlling the child JVM heap
 
-Each algorithm job runs in its own child JVM (with a 1 GB heap by default).
-The `-Xmx` flag on the main command controls the **server process** heap only.
-To increase the child JVM heap, set the environment variable `SPMF_CHILD_XMX`
-before starting the server:
+Each algorithm job runs in its own child JVM process. The child heap defaults
+to **1 GB**. The `-Xmx` flag on the main command controls only the **server
+process** heap; to increase the child heap set the `SPMF_CHILD_XMX`
+environment variable before starting the server:
 
 **Windows:**
 ```bat
@@ -220,6 +248,10 @@ java -Xmx512m -cp "spmf-server.jar;spmf.jar" ca.pfv.spmf.server.ServerMain spmf-
 export SPMF_CHILD_XMX=2g
 java -Xmx512m -cp "spmf-server.jar:spmf.jar" ca.pfv.spmf.server.ServerMain spmf-server.properties
 ```
+
+> **Tip:** If jobs fail with `OutOfMemoryError` in the console log, increase
+> `SPMF_CHILD_XMX`. If the algorithm simply runs too long, decrease
+> `job.timeoutMinutes` to reclaim resources sooner.
 
 ---
 
@@ -245,8 +277,8 @@ Expected response:
 }
 ```
 
-Press **Ctrl+C** to stop the server. It will drain in-flight requests before
-shutting down.
+Press **Ctrl+C** to stop the server. It will wait up to 30 seconds for
+in-flight jobs to finish before shutting down.
 
 ---
 
@@ -281,7 +313,9 @@ Returns server status, version, uptime, and job queue counts.
 
 ### `GET /api/info`
 
-Returns the active server configuration as a flat JSON object.
+Returns the active server configuration as a flat JSON object, including
+`jobTimeoutMinutes` and `jobTtlMinutes` so clients can know the effective
+limits without accessing the properties file.
 
 ---
 
@@ -348,7 +382,8 @@ example values, and whether each parameter is mandatory or optional.
 
 ### `POST /api/run`
 
-Submit a new mining job.
+Submit a new mining job. The server immediately returns a job ID; use
+`GET /api/jobs/{jobId}` to poll for completion.
 
 **Request body:**
 
@@ -379,6 +414,15 @@ Submit a new mining job.
 }
 ```
 
+**Error responses:**
+
+| HTTP code | Cause |
+|---|---|
+| `400 Bad Request` | Unknown algorithm name, wrong parameter count or type |
+| `401 Unauthorized` | Missing or incorrect `X-API-Key` header |
+| `413 Payload Too Large` | Input data exceeds `input.maxSizeMb` |
+| `503 Service Unavailable` | Job queue is full (`job.maxQueueSize` reached) |
+
 ---
 
 ### `GET /api/jobs/{jobId}`
@@ -388,9 +432,9 @@ Poll the status of a submitted job.
 | `status` value | Meaning |
 |---|---|
 | `PENDING` | Waiting in the execution queue |
-| `RUNNING` | Algorithm is currently executing |
+| `RUNNING` | Algorithm is currently executing in a child JVM |
 | `DONE` | Completed successfully — result is ready |
-| `FAILED` | Algorithm or server error — check console output |
+| `FAILED` | Algorithm or server error — check `console` output |
 
 <details>
 <summary>Example response — DONE</summary>
@@ -414,7 +458,7 @@ Poll the status of a submitted job.
 
 ### `GET /api/jobs/{jobId}/result`
 
-Fetch the algorithm's output text for a completed job.
+Fetch the algorithm's output text for a completed (`DONE`) job.
 
 <details>
 <summary>Example response</summary>
@@ -435,21 +479,36 @@ Fetch the algorithm's output text for a completed job.
 ### `GET /api/jobs/{jobId}/console`
 
 Fetch the stdout/stderr output captured from the child JVM process that ran
-the algorithm. Essential for diagnosing parameter errors or unexpected results.
+the algorithm. Useful for diagnosing parameter errors, unexpected results,
+or timeout kills.
 
 > **Important:** Always fetch console output **before** calling `DELETE`.
 > Deleting a job permanently removes its working directory and the console
 > log with it.
 
 <details>
-<summary>Example response</summary>
+<summary>Example response — successful run</summary>
 
 ```json
 {
   "jobId":         "5d0b27f6-f330-4cfb-9803-53f74c7bfa6a",
   "status":        "DONE",
   "lines":         12,
-  "consoleOutput": "=== Apriori ===\nMinimum support: 50 %\n..."
+  "consoleOutput": "[SpmfChild] Starting algorithm: 'Apriori' with 1 parameter(s)\n=== Apriori ===\nMinimum support: 50 %\n[SpmfChild] Algorithm completed successfully.\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Example response — timeout kill</summary>
+
+```json
+{
+  "jobId":         "5d0b27f6-f330-4cfb-9803-53f74c7bfa6a",
+  "status":        "FAILED",
+  "lines":         5,
+  "consoleOutput": "[SpmfChild] Starting algorithm: 'PrefixSpan' with 2 parameter(s)\n...\n[TIMEOUT] Algorithm exceeded 10 minute(s) and was forcibly killed.\n"
 }
 ```
 
@@ -459,14 +518,19 @@ the algorithm. Essential for diagnosing parameter errors or unexpected results.
 
 ### `GET /api/jobs`
 
-Returns a summary list of all jobs currently in the server registry.
+Returns a summary list of all jobs currently in the server registry
+(PENDING, RUNNING, DONE, and FAILED jobs that have not yet been purged
+by the TTL cleaner or explicitly deleted).
 
 ---
 
 ### `DELETE /api/jobs/{jobId}`
 
-Removes the job and all its working files from the server.
-Call this after retrieving all results to keep the server registry clean.
+Removes the job and all its working files (input, output, console log) from
+the server immediately, regardless of the TTL setting.
+
+Call this after retrieving all results to keep the server registry clean and
+reclaim disk space.
 
 ---
 
@@ -476,20 +540,36 @@ Call this after retrieving all results to keep the server registry clean.
 Client                                  Server
   |                                       |
   |--- POST /api/run ------------------->  |  Job created → returns jobId (202)
+  |                                       |  status: PENDING
+  |--- GET  /api/jobs/{id} ------------>  |  status: PENDING  (in queue)
+  |--- GET  /api/jobs/{id} ------------>  |  status: RUNNING  (child JVM active)
+  |--- GET  /api/jobs/{id} ------------>  |  status: DONE     (or FAILED)
   |                                       |
-  |--- GET  /api/jobs/{id} ------------>  |  status: PENDING
-  |--- GET  /api/jobs/{id} ------------>  |  status: RUNNING
-  |--- GET  /api/jobs/{id} ------------>  |  status: DONE
+  |--- GET  /api/jobs/{id}/console ----->  |  ← fetch this FIRST
+  |--- GET  /api/jobs/{id}/result ------>  |  ← then fetch result
   |                                       |
-  |--- GET  /api/jobs/{id}/console ----->  |  fetch console output FIRST
-  |--- GET  /api/jobs/{id}/result ------>  |  then fetch result data
+  |--- DELETE /api/jobs/{id} ---------->  |  clean up working files
   |                                       |
-  |--- DELETE /api/jobs/{id} ---------->  |  clean up working files (optional)
-  |                                       |
+                  (or wait for TTL)
+                                          |  background cleaner purges
+                                          |  jobs older than job.ttlMinutes
 ```
 
-> **Rule:** Always fetch **console** before **result** before **delete**.
-> Once a job is deleted, all output files are permanently removed from disk.
+**Rule:** Always fetch **console** before **result** before **delete**.
+Once a job is deleted (either explicitly or by the TTL cleaner), all output
+files are permanently removed from disk.
+
+### Timeout behaviour
+
+If an algorithm runs longer than `job.timeoutMinutes`, the server:
+
+1. Sends **SIGTERM** to the child JVM and waits 2 seconds.
+2. If still alive, sends **SIGKILL**.
+3. Marks the job as **FAILED** with an error message indicating the timeout.
+4. Appends a `[TIMEOUT]` annotation to `console.log`.
+
+The job then enters the normal TTL countdown and is purged after
+`job.ttlMinutes` minutes.
 
 ---
 
@@ -506,8 +586,6 @@ requiring no Java installation on the client machine — only Python 3.
 |---|---|
 | `spmf-client.py` | Full-featured command-line client covering every API endpoint |
 | `spmf-gui.py` | Graphical desktop client built with Python and tkinter |
-| `RUNCLIENT.BAT` | Windows batch script demonstrating all CLI commands |
-| `RUNCLIENTGUI.BAT` | Windows batch launcher for the GUI client |
 
 See the
 [spmf-server-pythonclient README](https://github.com/philfv9/spmf-server-pythonclient#readme)
@@ -517,22 +595,24 @@ for installation instructions and usage examples.
 
 ## Troubleshooting
 
-Some common problems and solutions are as follows:
-
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `Connection refused` on port 8585 | Server not started | Run the startup command from the [Running the Server](#running-the-server) section |
-| `HTTP 400` on job submission | Wrong parameter type or count | Check `GET /api/algorithms/{name}` for exact parameter types |
-| `HTTP 404` on algorithm name | Misspelled or wrong algorithm name | Check `GET /api/algorithms` for the exact name |
-| `HTTP 401` on all requests | API key mismatch or missing | Set the `X-API-Key` header to match `security.apiKey` in your properties file |
+| `Connection refused` on port 8585 | Server not started | Run the startup command from [Running the Server](#running-the-server) |
+| `HTTP 400` on job submission | Wrong parameter type or count | Check `GET /api/algorithms/{name}` for exact parameter types and counts |
+| `HTTP 404` on algorithm name | Misspelled or wrong algorithm name | Check `GET /api/algorithms` for the exact name (case-sensitive) |
+| `HTTP 401` on all requests | API key mismatch or missing header | Set the `X-API-Key` header to match `security.apiKey` in your properties file |
+| `HTTP 413` on job submission | Input file too large | Increase `input.maxSizeMb` in your properties file |
 | `HTTP 503` on job submission | Job queue is full | Wait for running jobs to finish, or increase `job.maxQueueSize` and `executor.maxThreads` |
-| Job stuck in `PENDING` | All worker threads busy | Wait, or increase `executor.maxThreads` in your properties file |
+| Job stuck in `PENDING` | All worker threads busy | Wait, or increase `executor.maxThreads` |
 | Job `FAILED` immediately | Bad input data or wrong parameters | Check `GET /api/jobs/{id}/console` for the Java stack trace |
-| Job `FAILED` with timeout | Algorithm exceeded `job.ttlMinutes` | Increase `job.ttlMinutes` or reduce input size; increase `SPMF_CHILD_XMX` if out of memory |
-| Algorithms not found / `ClassNotFoundException` in console | `spmf.jar` not on classpath | Ensure `spmf-server.jar` and `spmf.jar` are in the **same folder** and both are listed in `-cp` |
-| Child JVM cannot find jars | Relative classpath entries | Always run the `java` command from the folder containing both jars, or use absolute paths |
-| Console output empty after delete | Console fetched after job was deleted | Always fetch `/console` before calling `DELETE` |
-| `OutOfMemoryError` in console log | Algorithm needs more heap | Set `SPMF_CHILD_XMX=2g` (or higher) before starting the server |
+| Job `FAILED` with `[TIMEOUT]` in console | Algorithm exceeded `job.timeoutMinutes` | Increase `job.timeoutMinutes` or reduce input size |
+| Job `FAILED` with `OutOfMemoryError` in console | Child JVM ran out of heap | Set `SPMF_CHILD_XMX=2g` (or higher) and restart the server |
+| Results disappeared before retrieval | Job was purged by the TTL cleaner | Increase `job.ttlMinutes`; fetch results promptly after the job finishes |
+| Algorithms not found / `ClassNotFoundException` in console | `spmf.jar` not on classpath | Ensure both `spmf-server.jar` and `spmf.jar` are in the **same folder** and listed in `-cp` |
+| Child JVM cannot find jars | Relative classpath entries resolved from wrong directory | Always run the `java` command from the folder containing both jars, or use absolute paths |
+| Console output missing after delete | Console fetched after job was deleted | Always fetch `/console` **before** calling `DELETE` |
+| Config field changes have no effect | Server must be restarted to apply config changes | Stop the server, edit the properties file, then restart |
+| GUI config fields are greyed out | Server is running — fields are locked to prevent mid-run edits | Stop the server first, then edit the fields and restart |
 
 ---
 
