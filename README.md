@@ -571,21 +571,13 @@ The job then enters the normal TTL countdown and is purged after
 
 ## Clients
 
-A ready-to-use Python client package for SPMF-Server is available at:
+A ready-to-use Python client package for SPMF-Server is available at with CLI and GUI:
 
 **[https://github.com/philfv9/spmf-server-pythonclient](https://github.com/philfv9/spmf-server-pythonclient)**
 
-The package provides both a command-line client and a graphical desktop client,
-requiring no Java installation on the client machine — only Python 3.
+Also, a Web client (HTML+CSS+JS) is available at:
 
-| File | Description |
-|---|---|
-| `spmf-client.py` | Full-featured command-line client covering every API endpoint |
-| `spmf-gui.py` | Graphical desktop client built with Python and tkinter |
-
-See the
-[spmf-server-pythonclient README](https://github.com/philfv9/spmf-server-pythonclient#readme)
-for installation instructions and usage examples.
+**[https://github.com/philfv9/spmf-server-webclient](https://github.com/philfv9/spmf-server-webclient)**
 
 ---
 
@@ -624,4 +616,5 @@ You are free to use, modify, and redistribute it under the terms of that licence
 
 - SPMF Library source code: [https://github.com/philfv9/spmf](https://github.com/philfv9/spmf)
 - Python client for SPMF-Server: [https://github.com/philfv9/spmf-server-pythonclient](https://github.com/philfv9/spmf-server-pythonclient)
+- Web client for SPMF-Server: [https://github.com/philfv9/spmf-server-webclient](https://github.com/philfv9/spmf-server-webclient)**
 - Official SPMF website: [http://philippe-fournier-viger.com/spmf/](http://philippe-fournier-viger.com/spmf/)
