@@ -12,7 +12,7 @@
 A **REST API server** that exposes the [SPMF](http://philippe-fournier-viger.com/spmf/)
 data-mining library over HTTP, so that any language or tool can submit mining jobs
 and retrieve results without needing a local Java integration. 
-This includes a [https://github.com/philfv9/spmf-server-pythonclient](Python client) and also a [https://github.com/philfv9/spmf-server-webclient](Web client).
+This includes a [Python client](https://github.com/philfv9/spmf-server-pythonclient) and also a [Web client](https://github.com/philfv9/spmf-server-webclient).
 
 ---
 
