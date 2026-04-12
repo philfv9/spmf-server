@@ -111,7 +111,7 @@ A typical setup might use `job.timeoutMinutes=10` (kill slow algorithms after
 10 minutes) and `job.ttlMinutes=60` (keep results accessible for 1 hour after
 completion).
 
-**Example `spmf-server.properties`:**
+**Example `spmf-server.properties`: **
 
 ```properties
 server.port=8585
@@ -155,7 +155,7 @@ The server starts on the command line with no GUI.
 java -Xmx512m -cp "spmf-server.jar;spmf.jar" ca.pfv.spmf.server.ServerMain spmf-server.properties
 ```
 
-**Linux / macOS:**
+**Linux / macOS:** 
 ```bash
 java -Xmx512m -cp "spmf-server.jar:spmf.jar" ca.pfv.spmf.server.ServerMain spmf-server.properties
 ```
