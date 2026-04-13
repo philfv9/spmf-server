@@ -60,7 +60,7 @@ the result and console output when the job completes.
 |---|---|
 | [SPMF Library](https://github.com/philfv9/spmf) | The core SPMF data-mining library (Java) |
 | [spmf-server-pythonclient](https://github.com/philfv9/spmf-server-pythonclient) | Ready-to-use Python CLI and GUI clients for SPMF-Server |
-| spmf-server-webclient  | (upcoming Web-based client for the SPMF-Server... to be released soon. |
+| [spmf-server-webclient](https://github.com/philfv9/spmf-server-webclient)  | (A HTML+JS Web-based client for the SPMF-Server |
 | [SPMF Website](http://philippe-fournier-viger.com/spmf/) | Official documentation, algorithm list, and downloads |
 
 ---
