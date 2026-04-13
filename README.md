@@ -2,6 +2,8 @@
 [![License](https://img.shields.io/github/license/philfv9/spmf-server.svg)](https://github.com/philfv9/spmf-server/blob/main/LICENSE)
 [![Release](https://img.shields.io/github/v/release/philfv9/spmf-server.svg)](https://github.com/philfv9/spmf-server/releases/latest)
 [![Stars](https://img.shields.io/github/stars/philfv9/spmf-server.svg)](https://github.com/philfv9/spmf-server/stargazers)
+[![Last Commit](https://img.shields.io/github/last-commit/philfv9/spmf-server-webclient)](https://github.com/philfv9/spmf-server-webclient/commits/main)
+[![SPMF](https://img.shields.io/badge/SPMF-300%2B%20Algorithms-blue)](http://www.philippe-fournier-viger.com/spmf/)
 
 # SPMF-Server
 
