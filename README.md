@@ -548,6 +548,8 @@ reclaim disk space.
 
 ## Job Lifecycle
 
+The job lifecycle is described below:
+
 <div align="center">
   <img src="/images/workflow.png" alt="SPMF server">
 </div>
