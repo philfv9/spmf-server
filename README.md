@@ -548,24 +548,9 @@ reclaim disk space.
 
 ## Job Lifecycle
 
-```
-Client                                  Server
-  |                                       |
-  |--- POST /api/run ------------------->  |  Job created → returns jobId (202)
-  |                                       |  status: PENDING
-  |--- GET  /api/jobs/{id} ------------>  |  status: PENDING  (in queue)
-  |--- GET  /api/jobs/{id} ------------>  |  status: RUNNING  (child JVM active)
-  |--- GET  /api/jobs/{id} ------------>  |  status: DONE     (or FAILED)
-  |                                       |
-  |--- GET  /api/jobs/{id}/console ----->  |  ← fetch this FIRST
-  |--- GET  /api/jobs/{id}/result ------>  |  ← then fetch result
-  |                                       |
-  |--- DELETE /api/jobs/{id} ---------->  |  clean up working files
-  |                                       |
-                  (or wait for TTL)
-                                          |  background cleaner purges
-                                          |  jobs older than job.ttlMinutes
-```
+<div align="center">
+  <img src="/images/workflow.png" alt="SPMF server">
+</div>
 
 **Rule:** Always fetch **console** before **result** before **delete**.
 Once a job is deleted (either explicitly or by the TTL cleaner), all output
