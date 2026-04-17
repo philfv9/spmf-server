@@ -24,7 +24,7 @@ This includes a [Python client](https://github.com/philfv9/spmf-server-pythoncli
 - [Requirements](#requirements)
 - [Configuration](#configuration)
 - [Running the Server](#running-the-server)
-- [Clients](#clients)
+- [Clients](#clients-for-the-spmf-server)
 - [REST API Reference](#rest-api-reference)
 - [Job Lifecycle](#job-lifecycle)
 - [Troubleshooting](#troubleshooting)
