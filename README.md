@@ -285,13 +285,9 @@ in-flight jobs to finish before shutting down.
 
 There are two clients designed to work with the SPMF-Server for now.
 
-A Python client package for SPMF-Server is available with optional GUI:
+* A Python client package for SPMF-Server is available with optional GUI: **[https://github.com/philfv9/spmf-server-pythonclient](https://github.com/philfv9/spmf-server-pythonclient)**
 
-**[https://github.com/philfv9/spmf-server-pythonclient](https://github.com/philfv9/spmf-server-pythonclient)**
-
-A Web client (HTML+CSS+JS) that can run in your browser is available at:
-
-**[https://github.com/philfv9/spmf-server-webclient](https://github.com/philfv9/spmf-server-webclient)**
+* A Web client (HTML+CSS+JS) that can run in your browser is available at: **[https://github.com/philfv9/spmf-server-webclient](https://github.com/philfv9/spmf-server-webclient)**
 
 ---
 
