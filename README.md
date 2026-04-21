@@ -8,12 +8,12 @@
 # SPMF-Server
 
 <div align="center">
-  <img src="/images/spmf-server-logo.png" alt="SPMF server" x>
+  <img src="/images/spmf-server-logo.png" alt="SPMF server">
 </div>
 
 A **REST API server** that exposes the [SPMF](http://philippe-fournier-viger.com/spmf/)
 data-mining library over HTTP, so that any language or tool can submit mining jobs
-and retrieve results without needing a local Java integration. 
+and retrieve results without needing a local Java integration.
 This includes a [Python client](https://github.com/philfv9/spmf-server-pythonclient) and also a [Web client](https://github.com/philfv9/spmf-server-webclient).
 
 ---
@@ -24,7 +24,7 @@ This includes a [Python client](https://github.com/philfv9/spmf-server-pythoncli
 - [Requirements](#requirements)
 - [Configuration](#configuration)
 - [Running the Server](#running-the-server)
-- [Clients](#clients)
+- [Clients](#clients-for-the-spmf-server)
 - [REST API Reference](#rest-api-reference)
 - [Job Lifecycle](#job-lifecycle)
 - [Troubleshooting](#troubleshooting)
@@ -60,7 +60,7 @@ the result and console output when the job completes.
 |---|---|
 | [SPMF Library](https://github.com/philfv9/spmf) | The core SPMF data-mining library (Java) |
 | [spmf-server-pythonclient](https://github.com/philfv9/spmf-server-pythonclient) | Ready-to-use Python CLI and GUI clients for SPMF-Server |
-| [spmf-server-webclient](https://github.com/philfv9/spmf-server-webclient)  | (A HTML+JS Web-based client for the SPMF-Server |
+| [spmf-server-webclient](https://github.com/philfv9/spmf-server-webclient) | A HTML+JS Web-based client for the SPMF-Server |
 | [SPMF Website](http://philippe-fournier-viger.com/spmf/) | Official documentation, algorithm list, and downloads |
 
 ---
@@ -113,7 +113,7 @@ A typical setup might use `job.timeoutMinutes=10` (kill slow algorithms after
 10 minutes) and `job.ttlMinutes=60` (keep results accessible for 1 hour after
 completion).
 
-**Example `spmf-server.properties`: **
+**Example `spmf-server.properties`:**
 
 ```properties
 server.port=8585
@@ -157,7 +157,7 @@ The server starts on the command line with no GUI.
 java -Xmx512m -cp "spmf-server.jar;spmf.jar" ca.pfv.spmf.server.ServerMain spmf-server.properties
 ```
 
-**Linux / macOS:** 
+**Linux / macOS:**
 ```bash
 java -Xmx512m -cp "spmf-server.jar:spmf.jar" ca.pfv.spmf.server.ServerMain spmf-server.properties
 ```
@@ -285,37 +285,96 @@ in-flight jobs to finish before shutting down.
 
 There are two clients designed to work with the SPMF-Server for now.
 
-A Python client package for SPMF-Server is available at with optional GUI:
+* A Python client package for SPMF-Server is available with optional GUI: **[https://github.com/philfv9/spmf-server-pythonclient](https://github.com/philfv9/spmf-server-pythonclient)**
 
-**[https://github.com/philfv9/spmf-server-pythonclient](https://github.com/philfv9/spmf-server-pythonclient)**
-
-A Web client (HTML+CSS+JS) that can run in your browser is available at:
-
-**[https://github.com/philfv9/spmf-server-webclient](https://github.com/philfv9/spmf-server-webclient)**
+* A Web client (HTML+CSS+JS) that can run in your browser is available at: **[https://github.com/philfv9/spmf-server-webclient](https://github.com/philfv9/spmf-server-webclient)**
 
 ---
+
 ## REST API Reference
 
-All requests and responses use `Content-Type: application/json`.
+All endpoints are served under the base path `/api`. Every request and response
+uses `Content-Type: application/json`. If `security.apiKey` is configured, all
+requests must include the header `X-API-Key: <your-key>`.
+
+### Endpoint Summary
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/health` | Server liveness check with runtime statistics |
+| `GET` | `/api/info` | Active server configuration |
+| `GET` | `/api/algorithms` | List all available algorithms |
+| `GET` | `/api/algorithms/{algorithmName}` | Full descriptor for one algorithm |
+| `POST` | `/api/run` | Submit a new mining job |
+| `GET` | `/api/jobs` | List all jobs in the registry |
+| `GET` | `/api/jobs/{jobId}` | Full status of one job |
+| `GET` | `/api/jobs/{jobId}/result` | Algorithm output for a completed job |
+| `GET` | `/api/jobs/{jobId}/console` | Child-process stdout/stderr for a job |
+| `DELETE` | `/api/jobs/{jobId}` | Delete a job and its working files |
+
+---
+
+### Authentication
+
+If `security.apiKey` is set in `spmf-server.properties`, every request must
+include the following HTTP header:
+
+```
+X-API-Key: <your-configured-key>
+```
+
+Requests with a missing or incorrect key receive `401 Unauthorized`. When
+`security.apiKey` is empty (the default), no authentication is required.
+
+---
+
+### Common Error Response Format
+
+All error responses share the same JSON shape:
+
+```json
+{
+  "error":  "Human-readable description of what went wrong.",
+  "status": 404
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `error` | `string` | Human-readable error message |
+| `status` | `integer` | Mirrors the HTTP status code |
 
 ---
 
 ### `GET /api/health`
 
-Returns server status, version, uptime, and job queue counts.
+Returns a liveness check with live runtime statistics. Use this endpoint to
+confirm the server is running and to monitor queue pressure.
+
+**Response `200 OK`**
+
+| Field | Type | Description |
+|---|---|---|
+| `status` | `string` | Always `"UP"` |
+| `version` | `string` | Server version string |
+| `spmfAlgorithmsLoaded` | `integer` | Number of algorithms available in the catalogue |
+| `uptimeSeconds` | `integer` | Seconds elapsed since the server started |
+| `activeJobs` | `integer` | Jobs currently executing in a child JVM |
+| `queuedJobs` | `integer` | Jobs waiting in the submission queue |
+| `totalJobsInRegistry` | `integer` | All tracked jobs, including terminal ones not yet purged |
 
 <details>
 <summary>Example response</summary>
 
 ```json
 {
-  "status": "UP",
-  "version": "1.0.0",
+  "status":               "UP",
+  "version":              "1.0.0",
   "spmfAlgorithmsLoaded": 231,
-  "uptimeSeconds": 3742,
-  "activeJobs": 1,
-  "queuedJobs": 0,
-  "totalJobsInRegistry": 4
+  "uptimeSeconds":        3742,
+  "activeJobs":           1,
+  "queuedJobs":           0,
+  "totalJobsInRegistry":  4
 }
 ```
 
@@ -325,15 +384,67 @@ Returns server status, version, uptime, and job queue counts.
 
 ### `GET /api/info`
 
-Returns the active server configuration as a flat JSON object, including
-`jobTimeoutMinutes` and `jobTtlMinutes` so clients can know the effective
-limits without accessing the properties file.
+Returns the active server configuration as a flat JSON object. Useful for
+clients that need to know effective limits (timeout, TTL, max input size)
+without accessing the properties file directly.
+
+> **Security note:** The actual API key value is never returned. Only the
+> boolean flag `apiKeyEnabled` is exposed.
+
+**Response `200 OK`**
+
+| Field | Type | Description |
+|---|---|---|
+| `version` | `string` | Server version string |
+| `host` | `string` | Bind address the server is listening on |
+| `port` | `integer` | TCP port the server is listening on |
+| `coreThreads` | `integer` | Minimum number of worker threads in the job pool |
+| `maxThreads` | `integer` | Maximum number of worker threads under peak load |
+| `jobTtlMinutes` | `integer` | Minutes a finished job is retained before auto-purge |
+| `jobTimeoutMinutes` | `integer` | Maximum minutes an algorithm may run before being killed |
+| `maxQueueSize` | `integer` | Maximum number of jobs allowed in the submission queue |
+| `workDir` | `string` | Path to the directory where per-job files are stored |
+| `maxInputSizeMb` | `integer` | Maximum allowed input upload size in megabytes |
+| `apiKeyEnabled` | `boolean` | Whether API key authentication is active |
+| `logLevel` | `string` | Active JUL log level |
+
+<details>
+<summary>Example response</summary>
+
+```json
+{
+  "version":          "1.0.0",
+  "host":             "0.0.0.0",
+  "port":             8585,
+  "coreThreads":      4,
+  "maxThreads":       8,
+  "jobTtlMinutes":    30,
+  "jobTimeoutMinutes": 10,
+  "maxQueueSize":     100,
+  "workDir":          "./spmf-work",
+  "maxInputSizeMb":   50,
+  "apiKeyEnabled":    false,
+  "logLevel":         "INFO"
+}
+```
+
+</details>
 
 ---
 
 ### `GET /api/algorithms`
 
-Returns all available algorithm names and their categories.
+Returns the names and categories of all algorithms currently available in the
+SPMF catalogue.
+
+**Response `200 OK`**
+
+| Field | Type | Description |
+|---|---|---|
+| `count` | `integer` | Total number of available algorithms |
+| `algorithms` | `array` | List of algorithm descriptor objects |
+| `algorithms[].name` | `string` | Exact algorithm name (use this in `POST /api/run`) |
+| `algorithms[].algorithmCategory` | `string` | Category the algorithm belongs to |
 
 <details>
 <summary>Example response (truncated)</summary>
@@ -355,34 +466,64 @@ Returns all available algorithm names and their categories.
 
 ### `GET /api/algorithms/{algorithmName}`
 
-Returns the full descriptor for one algorithm: parameter names, types,
-example values, and whether each parameter is mandatory or optional.
+Returns the full descriptor for a single algorithm, including all parameters
+with their types, example values, and whether each is mandatory or optional.
+
+**Path parameter**
+
+| Parameter | Description |
+|---|---|
+| `algorithmName` | Exact algorithm name as returned by `GET /api/algorithms` (case-sensitive) |
+
+**Response `200 OK`**
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | `string` | Algorithm name |
+| `algorithmCategory` | `string` | Category (e.g. `FREQUENT_ITEMSET_MINING`) |
+| `algorithmType` | `string` | Internal type identifier |
+| `implementationAuthorNames` | `string` | Author(s) of the implementation |
+| `documentationURL` | `string` | URL to the algorithm's documentation page |
+| `inputFileTypes` | `array<string>` | Expected input file format(s) |
+| `outputFileTypes` | `array<string>` | Output file format(s) produced |
+| `numberOfMandatoryParameters` | `integer` | Count of required parameters |
+| `parameters` | `array` | Ordered list of parameter descriptors |
+| `parameters[].name` | `string` | Parameter name |
+| `parameters[].parameterType` | `string` | Java type (`Double`, `Integer`, `String`, …) |
+| `parameters[].example` | `string` | An example value for this parameter |
+| `parameters[].isOptional` | `boolean` | Whether the parameter may be omitted |
+
+**Error responses**
+
+| HTTP code | Cause |
+|---|---|
+| `404 Not Found` | No algorithm with the given name exists in the catalogue |
 
 <details>
 <summary>Example response — Apriori</summary>
 
 ```json
 {
-  "name": "Apriori",
-  "algorithmCategory": "FREQUENT_ITEMSET_MINING",
-  "algorithmType": "...",
-  "implementationAuthorNames": "Philippe Fournier-Viger",
-  "documentationURL": "https://...",
-  "inputFileTypes":  ["TRANSACTION_DATABASE"],
-  "outputFileTypes": ["FREQUENT_ITEMSETS"],
+  "name":                        "Apriori",
+  "algorithmCategory":           "FREQUENT_ITEMSET_MINING",
+  "algorithmType":               "...",
+  "implementationAuthorNames":   "Philippe Fournier-Viger",
+  "documentationURL":            "https://...",
+  "inputFileTypes":              ["TRANSACTION_DATABASE"],
+  "outputFileTypes":             ["FREQUENT_ITEMSETS"],
   "numberOfMandatoryParameters": 1,
   "parameters": [
     {
-      "name": "minsup",
+      "name":          "minsup",
       "parameterType": "Double",
-      "example": "0.4",
-      "isOptional": false
+      "example":       "0.4",
+      "isOptional":    false
     },
     {
-      "name": "Max pattern length",
+      "name":          "Max pattern length",
       "parameterType": "Integer",
-      "example": "4",
-      "isOptional": true
+      "example":       "4",
+      "isOptional":    true
     }
   ]
 }
@@ -394,10 +535,26 @@ example values, and whether each parameter is mandatory or optional.
 
 ### `POST /api/run`
 
-Submit a new mining job. The server immediately returns a job ID; use
-`GET /api/jobs/{jobId}` to poll for completion.
+Submit a new mining job. The server validates the request, enqueues the job,
+and immediately returns a job ID. Use [`GET /api/jobs/{jobId}`](#get-apijobsjobid)
+to poll for completion.
 
-**Request body:**
+**Request body** (`Content-Type: application/json`)
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `algorithmName` | `string` | Yes | Exact algorithm name from `GET /api/algorithms` (case-sensitive) |
+| `parameters` | `array<string>` | Yes | Ordered list of parameter values as strings. Pass an empty array `[]` if the algorithm requires no parameters |
+| `inputData` | `string` | Yes | Raw input text or Base64-encoded bytes |
+| `inputEncoding` | `string` | No | `"plain"` (default) or `"base64"` |
+
+> **Parameter ordering:** Parameters must be supplied in the same order as
+> listed in `GET /api/algorithms/{algorithmName}`. Mandatory parameters come
+> first. Optional parameters may be omitted by truncating the array from the
+> end.
+
+<details>
+<summary>Example request body</summary>
 
 ```json
 {
@@ -408,14 +565,21 @@ Submit a new mining job. The server immediately returns a job ID; use
 }
 ```
 
-| Field | Required | Description |
-|---|---|---|
-| `algorithmName` | Yes | Exact name from `GET /api/algorithms` |
-| `parameters` | Yes | Ordered list of parameter values as strings |
-| `inputData` | Yes | Raw input text or Base64-encoded string |
-| `inputEncoding` | No | `"plain"` (default) or `"base64"` |
+</details>
 
-**Response:** `202 Accepted`
+**Response `202 Accepted`**
+
+The job was accepted and is now queued for execution.
+
+| Field | Type | Description |
+|---|---|---|
+| `jobId` | `string` | UUID that uniquely identifies the job |
+| `status` | `string` | Initial status — always `"PENDING"` |
+| `algorithmName` | `string` | The algorithm name as submitted |
+| `submittedAt` | `string` | ISO-8601 UTC timestamp of submission |
+
+<details>
+<summary>Example response</summary>
 
 ```json
 {
@@ -426,41 +590,150 @@ Submit a new mining job. The server immediately returns a job ID; use
 }
 ```
 
-**Error responses:**
+</details>
+
+**Error responses**
 
 | HTTP code | Cause |
 |---|---|
-| `400 Bad Request` | Unknown algorithm name, wrong parameter count or type |
+| `400 Bad Request` | Malformed JSON body, missing required field, unknown algorithm name, or wrong parameter count or type |
 | `401 Unauthorized` | Missing or incorrect `X-API-Key` header |
-| `413 Payload Too Large` | Input data exceeds `input.maxSizeMb` |
-| `503 Service Unavailable` | Job queue is full (`job.maxQueueSize` reached) |
+| `413 Payload Too Large` | `inputData` size exceeds `input.maxSizeMb` |
+| `503 Service Unavailable` | The submission queue has reached `job.maxQueueSize` — retry later |
+
+---
+
+### `GET /api/jobs`
+
+Returns a summary list of all jobs currently in the server registry —
+including `PENDING`, `RUNNING`, `DONE`, and `FAILED` jobs that have not yet
+been purged by the TTL cleaner or explicitly deleted.
+
+**Response `200 OK`**
+
+| Field | Type | Description |
+|---|---|---|
+| `count` | `integer` | Total number of jobs in the registry |
+| `jobs` | `array` | List of job summary objects |
+| `jobs[].jobId` | `string` | Job UUID |
+| `jobs[].algorithmName` | `string` | Algorithm used for this job |
+| `jobs[].status` | `string` | Current job status |
+| `jobs[].submittedAt` | `string` | ISO-8601 UTC submission timestamp |
+
+<details>
+<summary>Example response</summary>
+
+```json
+{
+  "count": 2,
+  "jobs": [
+    {
+      "jobId":         "5d0b27f6-f330-4cfb-9803-53f74c7bfa6a",
+      "algorithmName": "Apriori",
+      "status":        "DONE",
+      "submittedAt":   "2026-01-01T10:23:01Z"
+    },
+    {
+      "jobId":         "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "algorithmName": "PrefixSpan",
+      "status":        "RUNNING",
+      "submittedAt":   "2026-01-01T10:25:00Z"
+    }
+  ]
+}
+```
+
+</details>
 
 ---
 
 ### `GET /api/jobs/{jobId}`
 
-Poll the status of a submitted job.
+Returns the full status detail for a single job.
 
-| `status` value | Meaning |
+**Path parameter**
+
+| Parameter | Description |
 |---|---|
-| `PENDING` | Waiting in the execution queue |
-| `RUNNING` | Algorithm is currently executing in a child JVM |
-| `DONE` | Completed successfully — result is ready |
-| `FAILED` | Algorithm or server error — check `console` output |
+| `jobId` | UUID of the job as returned by `POST /api/run` |
+
+**Job status values**
+
+| `status` | Meaning |
+|---|---|
+| `PENDING` | Waiting in the execution queue — no child process started yet |
+| `RUNNING` | Algorithm is executing in a child JVM process |
+| `DONE` | Completed successfully — result and console output are available |
+| `FAILED` | Algorithm or server error — check `console` output for details |
+
+**Response `200 OK`**
+
+| Field | Type | Description |
+|---|---|---|
+| `jobId` | `string` | Job UUID |
+| `algorithmName` | `string` | Algorithm used for this job |
+| `status` | `string` | Current job status |
+| `submittedAt` | `string` | ISO-8601 UTC submission timestamp |
+| `startedAt` | `string\|null` | ISO-8601 UTC timestamp when execution began, or `null` if still `PENDING` |
+| `finishedAt` | `string\|null` | ISO-8601 UTC timestamp when execution ended, or `null` if not yet finished |
+| `executionTimeMs` | `integer\|null` | Wall-clock execution time in milliseconds, or `null` if not yet finished |
+| `errorMessage` | `string\|null` | Human-readable error description for `FAILED` jobs, otherwise `null` |
+
+**Error responses**
+
+| HTTP code | Cause |
+|---|---|
+| `404 Not Found` | No job with the given `jobId` exists in the registry |
 
 <details>
 <summary>Example response — DONE</summary>
 
 ```json
 {
-  "jobId":            "5d0b27f6-f330-4cfb-9803-53f74c7bfa6a",
-  "algorithmName":    "Apriori",
-  "status":           "DONE",
-  "submittedAt":      "2026-01-01T10:23:01Z",
-  "startedAt":        "2026-01-01T10:23:01Z",
-  "finishedAt":       "2026-01-01T10:23:02Z",
-  "executionTimeMs":  385,
-  "errorMessage":     null
+  "jobId":           "5d0b27f6-f330-4cfb-9803-53f74c7bfa6a",
+  "algorithmName":   "Apriori",
+  "status":          "DONE",
+  "submittedAt":     "2026-01-01T10:23:01Z",
+  "startedAt":       "2026-01-01T10:23:01Z",
+  "finishedAt":      "2026-01-01T10:23:02Z",
+  "executionTimeMs": 385,
+  "errorMessage":    null
+}
+```
+
+</details>
+
+<details>
+<summary>Example response — PENDING</summary>
+
+```json
+{
+  "jobId":           "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "algorithmName":   "PrefixSpan",
+  "status":          "PENDING",
+  "submittedAt":     "2026-01-01T10:25:00Z",
+  "startedAt":       null,
+  "finishedAt":      null,
+  "executionTimeMs": null,
+  "errorMessage":    null
+}
+```
+
+</details>
+
+<details>
+<summary>Example response — FAILED</summary>
+
+```json
+{
+  "jobId":           "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+  "algorithmName":   "PrefixSpan",
+  "status":          "FAILED",
+  "submittedAt":     "2026-01-01T10:26:00Z",
+  "startedAt":       "2026-01-01T10:26:01Z",
+  "finishedAt":      "2026-01-01T10:36:01Z",
+  "executionTimeMs": 600000,
+  "errorMessage":    "Algorithm exceeded the configured timeout of 10 minute(s)."
 }
 ```
 
@@ -470,7 +743,30 @@ Poll the status of a submitted job.
 
 ### `GET /api/jobs/{jobId}/result`
 
-Fetch the algorithm's output text for a completed (`DONE`) job.
+Fetches the algorithm output text for a completed (`DONE`) job.
+
+**Path parameter**
+
+| Parameter | Description |
+|---|---|
+| `jobId` | UUID of the job |
+
+**Response `200 OK`**
+
+| Field | Type | Description |
+|---|---|---|
+| `jobId` | `string` | Job UUID |
+| `outputData` | `string` | Raw algorithm output text |
+| `outputEncoding` | `string` | Always `"plain"` in the current version |
+| `executionTimeMs` | `integer` | Wall-clock execution time in milliseconds |
+
+**Error responses**
+
+| HTTP code | Cause |
+|---|---|
+| `404 Not Found` | No job with the given `jobId` exists in the registry |
+| `409 Conflict` | Job is still `PENDING` or `RUNNING` — result not yet available |
+| `422 Unprocessable Entity` | Job `FAILED` — no result is available; check `/console` |
 
 <details>
 <summary>Example response</summary>
@@ -490,13 +786,36 @@ Fetch the algorithm's output text for a completed (`DONE`) job.
 
 ### `GET /api/jobs/{jobId}/console`
 
-Fetch the stdout/stderr output captured from the child JVM process that ran
+Fetches the stdout and stderr captured from the child JVM process that ran
 the algorithm. Useful for diagnosing parameter errors, unexpected results,
 or timeout kills.
 
-> **Important:** Always fetch console output **before** calling `DELETE`.
-> Deleting a job permanently removes its working directory and the console
-> log with it.
+> **Important:** Always fetch console output **before** calling
+> `DELETE /api/jobs/{jobId}`. Deleting a job permanently removes its working
+> directory and the console log with it.
+
+**Path parameter**
+
+| Parameter | Description |
+|---|---|
+| `jobId` | UUID of the job |
+
+**Response `200 OK`**
+
+| Field | Type | Description |
+|---|---|---|
+| `jobId` | `string` | Job UUID |
+| `status` | `string` | Current job status at the time of the request |
+| `consoleOutput` | `string` | Full captured stdout + stderr from the child JVM |
+| `lines` | `integer` | Number of lines in `consoleOutput` |
+
+**Error responses**
+
+| HTTP code | Cause |
+|---|---|
+| `404 Not Found` | No job with the given `jobId` exists in the registry |
+| `410 Gone` | Job is `PENDING` (child process not yet started), or is `RUNNING` but the log file has not been flushed to disk yet |
+| `500 Internal Server Error` | Job is in a terminal state but no `console.log` file was produced (unexpected) |
 
 <details>
 <summary>Example response — successful run</summary>
@@ -505,8 +824,8 @@ or timeout kills.
 {
   "jobId":         "5d0b27f6-f330-4cfb-9803-53f74c7bfa6a",
   "status":        "DONE",
-  "lines":         12,
-  "consoleOutput": "[SpmfChild] Starting algorithm: 'Apriori' with 1 parameter(s)\n=== Apriori ===\nMinimum support: 50 %\n[SpmfChild] Algorithm completed successfully.\n"
+  "consoleOutput": "[SpmfChild] Starting algorithm: 'Apriori' with 1 parameter(s)\n=== Apriori ===\nMinimum support: 50 %\n[SpmfChild] Algorithm completed successfully.\n",
+  "lines":         4
 }
 ```
 
@@ -517,10 +836,10 @@ or timeout kills.
 
 ```json
 {
-  "jobId":         "5d0b27f6-f330-4cfb-9803-53f74c7bfa6a",
+  "jobId":         "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   "status":        "FAILED",
-  "lines":         5,
-  "consoleOutput": "[SpmfChild] Starting algorithm: 'PrefixSpan' with 2 parameter(s)\n...\n[TIMEOUT] Algorithm exceeded 10 minute(s) and was forcibly killed.\n"
+  "consoleOutput": "[SpmfChild] Starting algorithm: 'PrefixSpan' with 2 parameter(s)\n...\n[TIMEOUT] Algorithm exceeded 10 minute(s) and was forcibly killed.\n",
+  "lines":         3
 }
 ```
 
@@ -528,48 +847,72 @@ or timeout kills.
 
 ---
 
-### `GET /api/jobs`
+### `DELETE /api/jobs/{jobId}`
 
-Returns a summary list of all jobs currently in the server registry
-(PENDING, RUNNING, DONE, and FAILED jobs that have not yet been purged
-by the TTL cleaner or explicitly deleted).
+Removes the job and all its working files (input data, output data, console
+log) from the server immediately, regardless of the TTL setting.
+
+Call this after you have retrieved all results to keep the server registry
+clean and reclaim disk space.
+
+**Path parameter**
+
+| Parameter | Description |
+|---|---|
+| `jobId` | UUID of the job to delete |
+
+**Response `200 OK`**
+
+| Field | Type | Description |
+|---|---|---|
+| `jobId` | `string` | UUID of the deleted job |
+| `deleted` | `boolean` | Always `true` on a successful deletion |
+
+**Error responses**
+
+| HTTP code | Cause |
+|---|---|
+| `404 Not Found` | No job with the given `jobId` exists in the registry |
+
+<details>
+<summary>Example response</summary>
+
+```json
+{
+  "jobId":   "5d0b27f6-f330-4cfb-9803-53f74c7bfa6a",
+  "deleted": true
+}
+```
+
+</details>
 
 ---
 
-### `DELETE /api/jobs/{jobId}`
+### Recommended Client Workflow
 
-Removes the job and all its working files (input, output, console log) from
-the server immediately, regardless of the TTL setting.
+The recommended order of API calls for a complete job lifecycle is:
 
-Call this after retrieving all results to keep the server registry clean and
-reclaim disk space.
+```
+POST   /api/run                          → obtain jobId
+  └─► GET    /api/jobs/{jobId}           → poll until status is DONE or FAILED
+        ├─► GET    /api/jobs/{jobId}/console  → retrieve diagnostic output
+        ├─► GET    /api/jobs/{jobId}/result   → retrieve algorithm output (DONE only)
+        └─► DELETE /api/jobs/{jobId}          → clean up working files
+```
+
+> **Rule:** Always fetch `/console` and `/result` **before** calling `DELETE`.
+> Once a job is deleted — either explicitly or by the TTL cleaner — all output
+> files are permanently removed from disk.
 
 ---
 
 ## Job Lifecycle
 
-```
-Client                                  Server
-  |                                       |
-  |--- POST /api/run ------------------->  |  Job created → returns jobId (202)
-  |                                       |  status: PENDING
-  |--- GET  /api/jobs/{id} ------------>  |  status: PENDING  (in queue)
-  |--- GET  /api/jobs/{id} ------------>  |  status: RUNNING  (child JVM active)
-  |--- GET  /api/jobs/{id} ------------>  |  status: DONE     (or FAILED)
-  |                                       |
-  |--- GET  /api/jobs/{id}/console ----->  |  ← fetch this FIRST
-  |--- GET  /api/jobs/{id}/result ------>  |  ← then fetch result
-  |                                       |
-  |--- DELETE /api/jobs/{id} ---------->  |  clean up working files
-  |                                       |
-                  (or wait for TTL)
-                                          |  background cleaner purges
-                                          |  jobs older than job.ttlMinutes
-```
+The job lifecycle is described below:
 
-**Rule:** Always fetch **console** before **result** before **delete**.
-Once a job is deleted (either explicitly or by the TTL cleaner), all output
-files are permanently removed from disk.
+<div align="center">
+  <img src="/images/workflow.png" alt="SPMF server">
+</div>
 
 ### Timeout behaviour
 
@@ -620,5 +963,5 @@ You are free to use, modify, and redistribute it under the terms of that licence
 
 - SPMF Library source code: [https://github.com/philfv9/spmf](https://github.com/philfv9/spmf)
 - Python client for SPMF-Server: [https://github.com/philfv9/spmf-server-pythonclient](https://github.com/philfv9/spmf-server-pythonclient)
-- Web client for SPMF-Server: [https://github.com/philfv9/spmf-server-webclient](https://github.com/philfv9/spmf-server-webclient)**
+- Web client for SPMF-Server: [https://github.com/philfv9/spmf-server-webclient](https://github.com/philfv9/spmf-server-webclient)
 - Official SPMF website: [http://philippe-fournier-viger.com/spmf/](http://philippe-fournier-viger.com/spmf/)
