@@ -134,6 +134,10 @@ log.file=./logs/spmf-server.log
 
 ## Running the Server
 
+<div align="center">
+  <img src="/images/modes.jpg" alt="SPMF server modes">
+</div>
+
 ### File Layout
 
 Before starting, make sure both jars are in the **same folder**:
@@ -197,6 +201,13 @@ java -Xmx512m -cp "spmf-server.jar;spmf.jar" ca.pfv.spmf.server.ServerMain
 ```bash
 java -Xmx512m -cp "spmf-server.jar:spmf.jar" ca.pfv.spmf.server.ServerMain
 ```
+
+This will open the GUI:
+
+<div align="center">
+  <img src="/images/server.jpg" alt="SPMF server GUI">
+</div>
+
 
 The GUI lets you:
 
