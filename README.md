@@ -172,7 +172,7 @@ java -Xmx512m -cp "spmf-server.jar:spmf.jar" ca.pfv.spmf.server.ServerMain spmf-
 If the server is running, you will see information in the console as follows (here, on Windows):
 
 <div align="center">
-  <img src="/images/headless.png" alt="SPMF SERVER Headless mode" width="600">
+  <img src="/images/headless.png" alt="SPMF SERVER Headless mode" width="700">
 </div>
 
 
