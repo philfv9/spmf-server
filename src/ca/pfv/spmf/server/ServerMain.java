@@ -138,9 +138,10 @@ public class ServerMain {
     /**
      * Runs the server in headless (command-line) mode.
      * <p>
-     * Loads configuration, starts all subsystems, registers a JVM shutdown
-     * hook to perform a clean stop, then blocks the main thread indefinitely
-     * until a signal (e.g. {@code Ctrl+C}) is received.
+     * Loads configuration, prints the startup banner to the console, starts all
+     * subsystems, registers a JVM shutdown hook to perform a clean stop, then
+     * blocks the main thread indefinitely until a signal (e.g. {@code Ctrl+C})
+     * is received.
      *
      * @param configPath path to the {@code .properties} configuration file
      */
@@ -152,6 +153,12 @@ public class ServerMain {
         // Configure logging as early as possible so subsequent log calls
         // use the requested level and output file
         ServerLogger.configure(config.getLogLevel(), config.getLogFile());
+
+        // Print the ASCII banner directly to System.out BEFORE the first JUL
+        // log record so the banner is not interleaved with formatted log lines.
+        // ConsoleBanner writes to System.out; JUL ConsoleHandler writes to
+        // System.err — they go to different streams and do not interleave.
+        ConsoleBanner.print(VERSION, configPath, config);
 
         log.info("SPMF-Server v" + VERSION + " — headless mode");
         log.info("Configuration: " + configPath);
