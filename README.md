@@ -169,6 +169,11 @@ java -Xmx512m -cp "spmf-server.jar:spmf.jar" ca.pfv.spmf.server.ServerMain spmf-
 > The only difference between Windows and Linux/macOS is the classpath
 > separator: **`;`** on Windows, **`:`** on Linux/macOS.
 
+<div align="center">
+  <img src="/images/headless.png" alt="SPMF SERVER Headless mode" width="600">
+</div>
+
+
 ---
 
 ### Option 2 — Explicit headless flag
