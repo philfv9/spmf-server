@@ -146,7 +146,7 @@ Before starting, make sure both jars are in the **same folder**:
 my-server/
 ├── spmf-server.jar
 ├── spmf.jar
-└── spmf-server.properties   ← optional, created from the example above
+└── spmf-server.properties   ← optional, to store configuration
 ```
 
 ---
