@@ -175,7 +175,6 @@ If the server is running, you will see information in the console as follows (he
   <img src="/images/headless.png" alt="SPMF SERVER Headless mode" width="700">
 </div>
 
-
 ---
 
 ### Option 2 — Explicit headless flag
@@ -196,10 +195,10 @@ java -Xmx512m -cp "spmf-server.jar:spmf.jar" ca.pfv.spmf.server.ServerMain --hea
 
 ### Option 3 — GUI mode (desktop environments only)
 
-Omit all arguments to launch the Swing graphical interface.
-This mode requires a display and is not suitable for headless servers.
+It is also possible to launch the server with its graphical interface. This requires a display and is not suitable for headless servers.
 
 **Windows:**
+If Java is correctly installed, you can launch it by double-clicking on the spmf-server.jar file. This will work if the spmf.jar file is in the same directory as spmf-server.jar. Alternatively, the server can be launched in GUI mode from the command line as follows:
 ```bat
 java -Xmx512m -cp "spmf-server.jar;spmf.jar" ca.pfv.spmf.server.ServerMain
 ```
