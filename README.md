@@ -68,8 +68,8 @@ the result and console output when the job completes.
 ## Requirements
 
 - **Java 11 or later**
-- **`spmf-server.jar`** — the SPMF-Server application jar
-- **`spmf.jar`** — the SPMF library jar (available from the
+- **`spmf-server.jar`** — the SPMF-Server application jar （can be downloadedaded from the release page)
+- **`spmf.jar`** — the SPMF library jar (available from the release page of the
   [SPMF GitHub repository](https://github.com/philfv9/spmf) or the
   [SPMF website](http://philippe-fournier-viger.com/spmf/))
 
