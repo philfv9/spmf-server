@@ -34,8 +34,8 @@ This includes a [Python client](https://github.com/philfv9/spmf-server-pythoncli
 
 ## Overview
 
-[SPMF](http://philippe-fournier-viger.com/spmf/) is one of the largest open-source
-data-mining libraries, specialised in pattern mining, providing over 300 algorithms for:
+[SPMF](http://philippe-fournier-viger.com/spmf/) is the largest open-source
+data-mining library that is specialised in pattern mining, providing over 300 algorithms for:
 
 - Frequent itemset mining (Apriori, FP-Growth, …)
 - Sequential pattern mining
