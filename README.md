@@ -972,7 +972,7 @@ The job then enters the normal TTL countdown and is purged after
 
 **Author:** Philippe Fournier-Viger and contributors.
 
-This software is distributed under the
+The SPMF-Server software is distributed under the
 [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html).
 You are free to use, modify, and redistribute it under the terms of that licence.
 
