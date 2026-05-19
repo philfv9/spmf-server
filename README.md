@@ -976,6 +976,8 @@ The SPMF-Server software is distributed under the
 [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html).
 You are free to use, modify, and redistribute it under the terms of that licence.
 
+For any derived work, license information and copyright information should be preserved in each file.
+
 **Related links:**
 
 - SPMF Library source code: [https://github.com/philfv9/spmf](https://github.com/philfv9/spmf)
